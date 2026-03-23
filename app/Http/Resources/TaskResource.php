@@ -1,0 +1,32 @@
+<?php
+
+namespace App\Http\Resources;
+
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
+
+class TaskResource extends JsonResource
+{
+    public function toArray(Request $request): array
+    {
+        return [
+            'id' => $this->id,
+            'title' => $this->title,
+            'description' => $this->description,
+            'priority' => $this->priority,
+            'status' => $this->status,
+            'due_date' => $this->due_date,
+            'project' => new ProjectResource($this->whenLoaded('project')),
+            'creator' => new UserResource($this->whenLoaded('creator')),
+            'assignee' => new UserResource($this->whenLoaded('assignee')),
+            'parent' => new TaskResource($this->whenLoaded('parent')),
+            'subtasks' => TaskResource::collection($this->whenLoaded('subtasks')),
+            'assignedUsers' => UserResource::collection($this->whenLoaded('assignedUsers')),
+            'tags' => TagResource::collection($this->whenLoaded('tags')),
+            'comments_count' => $this->whenCounted('comments'),
+            'attachments_count' => $this->whenCounted('attachments'),
+            'created_at' => $this->created_at,
+            'updated_at' => $this->updated_at,
+        ];
+    }
+}

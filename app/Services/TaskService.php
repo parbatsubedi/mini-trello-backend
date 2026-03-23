@@ -1,0 +1,84 @@
+<?php
+
+namespace App\Services;
+
+use App\Contracts\TaskRepositoryInterface;
+use App\Models\Task;
+use Illuminate\Database\Eloquent\Collection;
+
+class TaskService
+{
+    public function __construct(
+        protected TaskRepositoryInterface $repository
+    ) {}
+
+    public function all(array $columns = ['*'], array $relations = []): Collection
+    {
+        return $this->repository->all($columns, $relations);
+    }
+
+    public function find(int $id, array $columns = ['*'], array $relations = [], array $appends = []): ?Task
+    {
+        return $this->repository->find($id, $columns, $relations, $appends);
+    }
+
+    public function findOrFail(int $id, array $columns = ['*'], array $relations = []): Task
+    {
+        return $this->repository->findOrFail($id, $columns, $relations);
+    }
+
+    public function create(array $data): Task
+    {
+        return $this->repository->create($data);
+    }
+
+    public function update(int $id, array $data): bool
+    {
+        return $this->repository->update($id, $data);
+    }
+
+    public function delete(int $id): bool
+    {
+        return $this->repository->delete($id);
+    }
+
+    public function assignUser(int $taskId, int $userId): bool
+    {
+        return $this->repository->assignUser($taskId, $userId);
+    }
+
+    public function removeUser(int $taskId, int $userId): bool
+    {
+        return $this->repository->removeUser($taskId, $userId);
+    }
+
+    public function attachTag(int $taskId, int $tagId): bool
+    {
+        return $this->repository->attachTag($taskId, $tagId);
+    }
+
+    public function detachTag(int $taskId, int $tagId): bool
+    {
+        return $this->repository->detachTag($taskId, $tagId);
+    }
+
+    public function getByProject(int $projectId): Collection
+    {
+        return $this->repository->getByProject($projectId);
+    }
+
+    public function getByUser(int $userId): Collection
+    {
+        return $this->repository->getByUser($userId);
+    }
+
+    public function filter(array $filters): Collection
+    {
+        return $this->repository->filter($filters);
+    }
+
+    public function search(string $query, array $columns = ['title', 'description']): Collection
+    {
+        return $this->repository->search($query, $columns);
+    }
+}
