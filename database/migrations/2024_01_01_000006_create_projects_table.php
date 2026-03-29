@@ -14,7 +14,8 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->foreignId('department_id')->nullable()->constrained()->nullOnDelete();
-            $table->enum('status', ['active', 'on_hold', 'completed', 'archived'])->default('active');
+            // $table->enum('status', ['active', 'on_hold', 'completed', 'archived'])->default('active');
+            $table->string('status', 50)->default('active');
             $table->date('start_date')->nullable();
             $table->date('end_date')->nullable();
             $table->timestamps();

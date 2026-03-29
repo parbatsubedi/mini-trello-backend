@@ -42,7 +42,7 @@ class CommentSeeder extends Seeder
                 Comment::create([
                     'task_id' => $task->id,
                     'user_id' => $user->id,
-                    'body' => $commentTemplates[array_rand($commentTemplates)],
+                    'content' => $commentTemplates[array_rand($commentTemplates)],
                     'created_at' => now()->subDays($createdDaysAgo),
                     'updated_at' => now()->subDays($createdDaysAgo),
                 ]);

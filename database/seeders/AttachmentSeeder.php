@@ -35,16 +35,18 @@ class AttachmentSeeder extends Seeder
                 $file = $fileTemplates[array_rand($fileTemplates)];
                 $createdDaysAgo = rand(1, 10);
 
-                Attachment::create([
-                    'name' => $file[0],
-                    'file_path' => "/attachments/{$task->id}/".$file[0],
-                    'mime_type' => $file[1],
-                    'size' => $file[2],
-                    'task_id' => $task->id,
-                    'user_id' => $user->id,
-                    'created_at' => now()->subDays($createdDaysAgo),
-                    'updated_at' => now()->subDays($createdDaysAgo),
-                ]);
+                Attachment::updateOrCreate(
+                    ['file_path' => "/attachments/{$task->id}/".$file[0]],
+                    [
+                        'name' => $file[0],
+                        'mime_type' => $file[1],
+                        'size' => $file[2],
+                        'task_id' => $task->id,
+                        'user_id' => $user->id,
+                        'created_at' => now()->subDays($createdDaysAgo),
+                        'updated_at' => now()->subDays($createdDaysAgo),
+                    ]
+                );
             }
         }
     }

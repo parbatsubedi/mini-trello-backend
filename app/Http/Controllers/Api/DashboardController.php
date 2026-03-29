@@ -17,19 +17,19 @@ class DashboardController extends Controller
         $userId = Auth::id();
 
         $totalProjects = Project::whereHas('members', function ($query) use ($userId) {
-            $query->where('user_id', $userId);
+            // $query->where('user_id', $userId);
         })->count();
 
         $completedTasks = Task::whereHas('project.members', function ($query) use ($userId) {
-            $query->where('user_id', $userId);
+            // $query->where('user_id', $userId);
         })->where('status', 'done')->count();
 
         $inProgressTasks = Task::whereHas('project.members', function ($query) use ($userId) {
-            $query->where('user_id', $userId);
+            // $query->where('user_id', $userId);
         })->whereIn('status', ['in_progress', 'review'])->count();
 
         $totalTasks = Task::whereHas('project.members', function ($query) use ($userId) {
-            $query->where('user_id', $userId);
+            // $query->where('user_id', $userId);
         })->count();
 
         $efficiency = $totalTasks > 0 ? round(($completedTasks / $totalTasks) * 100) : 0;
