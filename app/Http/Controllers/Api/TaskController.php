@@ -19,8 +19,9 @@ class TaskController extends Controller
 
     public function index(Request $request): AnonymousResourceCollection
     {
+        $perPage = $request->input('per_page', 15);
         $relations = ['project', 'creator', 'assignee', 'tags', 'assignedUsers'];
-        $tasks = $this->service->all(['*'], $relations);
+        $tasks = $this->service->paginate($perPage, ['*'], $relations);
 
         return TaskResource::collection($tasks);
     }

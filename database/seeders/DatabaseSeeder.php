@@ -13,6 +13,10 @@ class DatabaseSeeder extends Seeder
             RoleSeeder::class,
             UserSeeder::class,
             TagSeeder::class,
+            ProjectSeeder::class,
+            TaskSeeder::class,
+            CommentSeeder::class,
+            AttachmentSeeder::class,
         ]);
     }
 }

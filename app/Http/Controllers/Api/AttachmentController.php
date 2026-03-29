@@ -7,6 +7,7 @@ use App\Http\Requests\StoreAttachmentRequest;
 use App\Http\Resources\AttachmentResource;
 use App\Services\AttachmentService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class AttachmentController extends Controller
@@ -15,9 +16,10 @@ class AttachmentController extends Controller
         protected AttachmentService $service
     ) {}
 
-    public function index(): AnonymousResourceCollection
+    public function index(Request $request): AnonymousResourceCollection
     {
-        $attachments = $this->service->all(['*'], ['user']);
+        $perPage = $request->input('per_page', 15);
+        $attachments = $this->service->paginate($perPage, ['*'], ['user']);
 
         return AttachmentResource::collection($attachments);
     }

@@ -6,6 +6,7 @@ use App\Contracts\AttachmentRepositoryInterface;
 use App\Models\Attachment;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Storage;
 
 class AttachmentService
@@ -17,6 +18,11 @@ class AttachmentService
     public function all(array $columns = ['*'], array $relations = []): Collection
     {
         return $this->repository->all($columns, $relations);
+    }
+
+    public function paginate(int $perPage = 15, array $columns = ['*'], array $relations = []): LengthAwarePaginator
+    {
+        return $this->repository->paginate($perPage, $columns, $relations);
     }
 
     public function find(int $id, array $columns = ['*'], array $relations = [], array $appends = []): ?Attachment

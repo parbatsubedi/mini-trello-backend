@@ -19,8 +19,9 @@ class ProjectController extends Controller
 
     public function index(Request $request): AnonymousResourceCollection
     {
+        $perPage = $request->input('per_page', 15);
         $relations = ['creator', 'department', 'members'];
-        $projects = $this->service->all(['*'], $relations);
+        $projects = $this->service->paginate($perPage, ['*'], $relations);
 
         return ProjectResource::collection($projects);
     }

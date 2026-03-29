@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Contracts\BaseRepositoryInterface;
 use App\Models\Tag;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class TagService
 {
@@ -15,6 +16,11 @@ class TagService
     public function all(array $columns = ['*'], array $relations = []): Collection
     {
         return $this->repository->all($columns, $relations);
+    }
+
+    public function paginate(int $perPage = 15, array $columns = ['*'], array $relations = []): LengthAwarePaginator
+    {
+        return $this->repository->paginate($perPage, $columns, $relations);
     }
 
     public function find(int $id, array $columns = ['*'], array $relations = [], array $appends = []): ?Tag

@@ -8,6 +8,7 @@ use App\Http\Requests\UpdateCommentRequest;
 use App\Http\Resources\CommentResource;
 use App\Services\CommentService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class CommentController extends Controller
@@ -16,9 +17,10 @@ class CommentController extends Controller
         protected CommentService $service
     ) {}
 
-    public function index(): AnonymousResourceCollection
+    public function index(Request $request): AnonymousResourceCollection
     {
-        $comments = $this->service->all(['*'], ['user']);
+        $perPage = $request->input('per_page', 15);
+        $comments = $this->service->paginate($perPage, ['*'], ['user']);
 
         return CommentResource::collection($comments);
     }

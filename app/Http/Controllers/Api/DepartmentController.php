@@ -8,6 +8,7 @@ use App\Http\Requests\UpdateDepartmentRequest;
 use App\Http\Resources\DepartmentResource;
 use App\Services\DepartmentService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class DepartmentController extends Controller
@@ -16,9 +17,10 @@ class DepartmentController extends Controller
         protected DepartmentService $service
     ) {}
 
-    public function index(): AnonymousResourceCollection
+    public function index(Request $request): AnonymousResourceCollection
     {
-        $departments = $this->service->all(['*'], ['users', 'projects']);
+        $perPage = $request->input('per_page', 15);
+        $departments = $this->service->paginate($perPage, ['*'], ['users', 'projects']);
 
         return DepartmentResource::collection($departments);
     }

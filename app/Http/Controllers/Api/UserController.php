@@ -19,8 +19,9 @@ class UserController extends Controller
 
     public function index(Request $request): AnonymousResourceCollection
     {
+        $perPage = $request->input('per_page', 15);
         $relations = ['department', 'roles'];
-        $users = $this->service->all(['*'], $relations);
+        $users = $this->service->paginate($perPage, ['*'], $relations);
 
         return UserResource::collection($users);
     }

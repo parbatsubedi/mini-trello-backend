@@ -11,29 +11,35 @@ class UserSeeder extends Seeder
 {
     public function run(): void
     {
-        $superAdmin = User::create([
-            'name' => 'Super Admin',
-            'email' => 'admin@example.com',
-            'password' => Hash::make('password'),
-        ]);
-        $superAdmin->roles()->attach(1);
-
         $engineeringDept = Department::where('name', 'Engineering')->first();
 
-        $devLead = User::create([
-            'name' => 'John Developer',
-            'email' => 'john@example.com',
-            'password' => Hash::make('password'),
-            'department_id' => $engineeringDept->id ?? null,
-        ]);
-        $devLead->roles()->attach(4);
+        $superAdmin = User::updateOrCreate(
+            ['email' => 'admin@example.com'],
+            [
+                'name' => 'Super Admin',
+                'password' => Hash::make('password'),
+            ]
+        );
+        $superAdmin->roles()->sync([1]);
 
-        $developer = User::create([
-            'name' => 'Jane Coder',
-            'email' => 'jane@example.com',
-            'password' => Hash::make('password'),
-            'department_id' => $engineeringDept->id ?? null,
-        ]);
-        $developer->roles()->attach(5);
+        $devLead = User::updateOrCreate(
+            ['email' => 'john@example.com'],
+            [
+                'name' => 'John Developer',
+                'password' => Hash::make('password'),
+                'department_id' => $engineeringDept->id ?? null,
+            ]
+        );
+        $devLead->roles()->sync([4]);
+
+        $developer = User::updateOrCreate(
+            ['email' => 'jane@example.com'],
+            [
+                'name' => 'Jane Coder',
+                'password' => Hash::make('password'),
+                'department_id' => $engineeringDept->id ?? null,
+            ]
+        );
+        $developer->roles()->sync([5]);
     }
 }

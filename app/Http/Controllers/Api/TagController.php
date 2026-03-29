@@ -8,6 +8,7 @@ use App\Http\Requests\UpdateTagRequest;
 use App\Http\Resources\TagResource;
 use App\Services\TagService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class TagController extends Controller
@@ -16,9 +17,10 @@ class TagController extends Controller
         protected TagService $service
     ) {}
 
-    public function index(): AnonymousResourceCollection
+    public function index(Request $request): AnonymousResourceCollection
     {
-        $tags = $this->service->all(['*'], ['tasks']);
+        $perPage = $request->input('per_page', 15);
+        $tags = $this->service->paginate($perPage, ['*'], ['tasks']);
 
         return TagResource::collection($tags);
     }

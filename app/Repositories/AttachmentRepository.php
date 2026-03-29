@@ -6,6 +6,7 @@ use App\Contracts\AttachmentRepositoryInterface;
 use App\Models\Attachment;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class AttachmentRepository implements AttachmentRepositoryInterface
 {
@@ -19,6 +20,11 @@ class AttachmentRepository implements AttachmentRepositoryInterface
     public function all(array $columns = ['*'], array $relations = []): Collection
     {
         return $this->model->with($relations)->get($columns);
+    }
+
+    public function paginate(int $perPage = 15, array $columns = ['*'], array $relations = []): LengthAwarePaginator
+    {
+        return $this->model->with($relations)->paginate($perPage, $columns);
     }
 
     public function find(int $id, array $columns = ['*'], array $relations = [], array $appends = []): ?Attachment

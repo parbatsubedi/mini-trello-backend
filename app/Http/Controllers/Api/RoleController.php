@@ -8,6 +8,7 @@ use App\Http\Requests\UpdateRoleRequest;
 use App\Http\Resources\RoleResource;
 use App\Services\RoleService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class RoleController extends Controller
@@ -16,9 +17,10 @@ class RoleController extends Controller
         protected RoleService $service
     ) {}
 
-    public function index(): AnonymousResourceCollection
+    public function index(Request $request): AnonymousResourceCollection
     {
-        $roles = $this->service->all(['*'], ['users']);
+        $perPage = $request->input('per_page', 15);
+        $roles = $this->service->paginate($perPage, ['*'], ['users']);
 
         return RoleResource::collection($roles);
     }
