@@ -23,6 +23,7 @@ Route::prefix('auth')->group(function () {
 });
 
 Route::middleware('auth.jwt')->group(function () {
+    Route::get('dashboard', [DashboardController::class, 'index']);
     Route::apiResource('departments', DepartmentController::class);
     Route::apiResource('users', UserController::class)->parameters(['users' => 'user']);
     Route::apiResource('roles', RoleController::class);
