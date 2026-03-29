@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\Admin\DashboardResource;
 use App\Models\Comment;
 use App\Models\Project;
 use App\Models\Task;
@@ -43,11 +44,13 @@ class DashboardController extends Controller
         $recentProjects = $this->getRecentProjects($userId);
         $recentActivity = $this->getRecentActivity($userId);
 
-        return response()->json([
+        $dashboardResponse = new DashboardResource((object) [
             'stats' => $stats,
             'recentProjects' => $recentProjects,
             'recentActivity' => $recentActivity,
         ]);
+
+        return response()->json($dashboardResponse);
     }
 
     private function getProjectChange(): string
