@@ -45,14 +45,26 @@ class RoleRepository implements BaseRepositoryInterface
 
     public function create(array $data): Role
     {
-        return $this->model->create($data);
+        $role = $this->model->create($data);
+
+        if (isset($data["users"])) {
+            $role->users()->sync($data["users"]);
+        }
+
+        return $role;
     }
 
     public function update(int $id, array $data): bool
     {
         $model = $this->findOrFail($id);
 
-        return $model->update($data);
+        $updated = $model->update($data);
+
+        if (isset($data["users"])) {
+            $model->users()->sync($data["users"]);
+        }
+
+        return $updated;
     }
 
     public function delete(int $id): bool

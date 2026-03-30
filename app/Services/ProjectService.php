@@ -18,7 +18,7 @@ class ProjectService
         return $this->repository->all($columns, $relations);
     }
 
-    public function paginate(int $perPage = 15, array $columns = ['*'], array $relations = []): LengthAwarePaginator
+    public function paginate(int $perPage = 3, array $columns = ['*'], array $relations = []): LengthAwarePaginator
     {
         return $this->repository->paginate($perPage, $columns, $relations);
     }

@@ -23,6 +23,10 @@ class StoreTaskRequest extends FormRequest
             'priority' => 'nullable|in:low,medium,high,urgent',
             'status' => 'nullable|in:todo,in_progress,review,done',
             'due_date' => 'nullable|date',
+            'assigned_users' => 'nullable|array',
+            'assigned_users.*' => 'exists:users,id',
+            'tags' => 'nullable|array',
+            'tags.*' => 'exists:tags,id',
         ];
     }
 }

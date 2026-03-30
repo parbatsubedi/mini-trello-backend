@@ -45,14 +45,32 @@ class TaskRepository implements TaskRepositoryInterface
 
     public function create(array $data): Task
     {
-        return $this->model->create($data);
+        $task = $this->model->create($data);
+
+        if (isset($data["assigned_users"])) {
+            $task->assignedUsers()->sync($data["assigned_users"]);
+        }
+        if (isset($data["tags"])) {
+            $task->tags()->sync($data["tags"]);
+        }
+
+        return $task;
     }
 
     public function update(int $id, array $data): bool
     {
         $model = $this->findOrFail($id);
 
-        return $model->update($data);
+        $updated = $model->update($data);
+
+        if (isset($data["assigned_users"])) {
+            $model->assignedUsers()->sync($data["assigned_users"]);
+        }
+        if (isset($data["tags"])) {
+            $model->tags()->sync($data["tags"]);
+        }
+
+        return $updated;
     }
 
     public function delete(int $id): bool

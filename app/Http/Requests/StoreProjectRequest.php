@@ -21,6 +21,8 @@ class StoreProjectRequest extends FormRequest
             'status' => 'nullable|in:active,on_hold,completed,archived',
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
+            'members' => 'nullable|array',
+            'members.*' => 'exists:users,id',
         ];
     }
 }

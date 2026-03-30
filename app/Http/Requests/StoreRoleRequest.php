@@ -17,6 +17,8 @@ class StoreRoleRequest extends FormRequest
             'name' => 'required|string|max:255',
             'slug' => 'required|string|max:255|unique:roles,slug',
             'description' => 'nullable|string',
+            'users' => 'nullable|array',
+            'users.*' => 'exists:users,id',
         ];
     }
 }

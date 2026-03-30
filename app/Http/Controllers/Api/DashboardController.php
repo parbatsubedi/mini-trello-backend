@@ -129,6 +129,7 @@ class DashboardController extends Controller
                 'members' => $project->members->count(),
                 'tasks' => $totalTasks,
                 'status' => $project->status ?? 'active',
+                'updated_at' => $project->updated_at->diffForHumans(),
             ];
         })->toArray();
     }

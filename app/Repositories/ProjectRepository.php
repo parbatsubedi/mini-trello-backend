@@ -45,14 +45,26 @@ class ProjectRepository implements ProjectRepositoryInterface
 
     public function create(array $data): Project
     {
-        return $this->model->create($data);
+        $project = $this->model->create($data);
+
+        if (isset($data['members'])) {
+            $project->members()->sync($data['members']);
+        }
+
+        return $project;
     }
 
     public function update(int $id, array $data): bool
     {
         $model = $this->findOrFail($id);
 
-        return $model->update($data);
+        $updated = $model->update($data);
+
+        if (isset($data['members'])) {
+            $model->members()->sync($data['members']);
+        }
+
+        return $updated;
     }
 
     public function delete(int $id): bool

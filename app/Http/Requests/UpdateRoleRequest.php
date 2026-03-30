@@ -17,6 +17,8 @@ class UpdateRoleRequest extends FormRequest
             'name' => 'sometimes|required|string|max:255',
             'slug' => 'sometimes|required|string|max:255|unique:roles,slug,'.$this->route('role'),
             'description' => 'nullable|string',
+            'users' => 'nullable|array',
+            'users.*' => 'exists:users,id',
         ];
     }
 }

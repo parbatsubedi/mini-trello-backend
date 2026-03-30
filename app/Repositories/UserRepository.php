@@ -45,14 +45,32 @@ class UserRepository implements UserRepositoryInterface
 
     public function create(array $data): User
     {
-        return $this->model->create($data);
+        $user = $this->model->create($data);
+
+        if (isset($data["roles"])) {
+            $user->roles()->sync($data["roles"]);
+        }
+        if (isset($data["projects"])) {
+            $user->projects()->sync($data["projects"]);
+        }
+
+        return $user;
     }
 
     public function update(int $id, array $data): bool
     {
         $model = $this->findOrFail($id);
 
-        return $model->update($data);
+        $updated = $model->update($data);
+
+        if (isset($data["roles"])) {
+            $model->roles()->sync($data["roles"]);
+        }
+        if (isset($data["projects"])) {
+            $model->projects()->sync($data["projects"]);
+        }
+
+        return $updated;
     }
 
     public function delete(int $id): bool
