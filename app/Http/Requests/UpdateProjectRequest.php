@@ -19,6 +19,7 @@ class UpdateProjectRequest extends FormRequest
             'user_id' => 'required|required|exists:users,id',
             // 'department_id' => 'required|exists:departments,id',
             'status' => 'required|in:active,on_hold,completed,archived',
+            'visibility' => 'required|in:open,closed',
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
             'members' => 'required|array',

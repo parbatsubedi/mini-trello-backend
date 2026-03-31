@@ -4,6 +4,8 @@ namespace App\Repositories;
 
 use App\Contracts\TaskRepositoryInterface;
 use App\Models\Task;
+use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -17,6 +19,32 @@ class TaskRepository implements TaskRepositoryInterface
         $this->model = $model;
     }
 
+    /**
+     * Apply project visibility access-control to a task query.
+     * Tasks in open projects are visible to everyone.
+     * Tasks in closed projects are only visible to the project creator or members.
+     * Admins can see all tasks regardless of project visibility.
+     */
+    protected function applyProjectVisibilityScope(Builder $query, int $userId): Builder
+    {
+        $user = User::find($userId);
+
+        if ($user && $user->isAdmin()) {
+            return $query;
+        }
+
+        return $query->whereHas('project', function (Builder $q) use ($userId) {
+            $q->where('visibility', 'open')
+                ->orWhere(function (Builder $inner) use ($userId) {
+                    $inner->where('visibility', 'closed')
+                        ->where(function (Builder $access) use ($userId) {
+                            $access->where('user_id', $userId)
+                                ->orWhereHas('members', fn (Builder $m) => $m->where('user_id', $userId));
+                        });
+                });
+        });
+    }
+
     public function all(array $columns = ['*'], array $relations = []): Collection
     {
         return $this->model->with($relations)->get($columns);
@@ -24,7 +52,10 @@ class TaskRepository implements TaskRepositoryInterface
 
     public function paginate(int $perPage = 15, array $columns = ['*'], array $relations = []): LengthAwarePaginator
     {
-        return $this->model->with($relations)->paginate($perPage, $columns);
+        $userId = auth()->id();
+
+        return $this->applyProjectVisibilityScope($this->model->with($relations)->newQuery(), $userId)
+            ->paginate($perPage, $columns);
     }
 
     public function find(int $id, array $columns = ['*'], array $relations = [], array $appends = []): ?Task
@@ -34,7 +65,12 @@ class TaskRepository implements TaskRepositoryInterface
 
     public function findOrFail(int $id, array $columns = ['*'], array $relations = []): ?Task
     {
-        $model = $this->model->with($relations)->find($id, $columns);
+        $userId = auth()->id();
+
+        $model = $this->applyProjectVisibilityScope(
+            $this->model->with($relations)->newQuery(),
+            $userId
+        )->find($id, $columns);
 
         if (! $model) {
             throw new ModelNotFoundException("Task not found with ID: {$id}");
@@ -57,12 +93,31 @@ class TaskRepository implements TaskRepositoryInterface
             $task->labels()->sync($data['labels']);
         }
 
+        ActivityLog::log(
+            'task_created',
+            'Created task: '.$task->title,
+            $task,
+            null,
+            $data,
+            Task::class
+        );
+
+        TaskHistory::log(
+            $task->id,
+            'task_created',
+            'Task created',
+            null,
+            null,
+            $task->title
+        );
+
         return $task;
     }
 
     public function update(int $id, array $data): bool
     {
         $model = $this->findOrFail($id);
+        $oldValues = $model->toArray();
 
         $updated = $model->update($data);
 
@@ -76,20 +131,80 @@ class TaskRepository implements TaskRepositoryInterface
             $model->labels()->sync($data['labels']);
         }
 
+        ActivityLog::log(
+            'task_updated',
+            'Updated task: '.$model->title,
+            $model,
+            $oldValues,
+            $data,
+            Task::class
+        );
+
+        foreach ($data as $field => $newValue) {
+            if (isset($oldValues[$field]) && $oldValues[$field] != $newValue) {
+                TaskHistory::log(
+                    $id,
+                    'field_changed',
+                    'Field changed: '.$field,
+                    $field,
+                    (string) $oldValues[$field],
+                    (string) $newValue
+                );
+            }
+        }
+
         return $updated;
     }
 
     public function delete(int $id): bool
     {
         $model = $this->findOrFail($id);
+        $taskTitle = $model->title;
 
-        return $model->delete();
+        $deleted = $model->delete();
+
+        if ($deleted) {
+            ActivityLog::log(
+                'task_deleted',
+                'Deleted task: '.$taskTitle,
+                null,
+                ['id' => $id, 'title' => $taskTitle],
+                null,
+                Task::class
+            );
+
+            TaskHistory::log(
+                $id,
+                'task_deleted',
+                'Task deleted'
+            );
+        }
+
+        return $deleted;
     }
 
     public function assignUser(int $taskId, int $userId): bool
     {
         $task = $this->findOrFail($taskId);
         $task->assignedUsers()->attach($userId);
+
+        ActivityLog::log(
+            'task_user_assigned',
+            'Assigned user to task: '.$task->title,
+            $task,
+            null,
+            ['user_id' => $userId],
+            Task::class
+        );
+
+        TaskHistory::log(
+            $taskId,
+            'user_assigned',
+            'User assigned to task',
+            'assigned_user',
+            null,
+            (string) $userId
+        );
 
         return true;
     }
@@ -99,6 +214,24 @@ class TaskRepository implements TaskRepositoryInterface
         $task = $this->findOrFail($taskId);
         $task->assignedUsers()->detach($userId);
 
+        ActivityLog::log(
+            'task_user_removed',
+            'Removed user from task: '.$task->title,
+            $task,
+            ['user_id' => $userId],
+            null,
+            Task::class
+        );
+
+        TaskHistory::log(
+            $taskId,
+            'user_removed',
+            'User removed from task',
+            'assigned_user',
+            (string) $userId,
+            null
+        );
+
         return true;
     }
 
@@ -106,6 +239,24 @@ class TaskRepository implements TaskRepositoryInterface
     {
         $task = $this->findOrFail($taskId);
         $task->tags()->attach($tagId);
+
+        ActivityLog::log(
+            'task_tag_attached',
+            'Attached tag to task: '.$task->title,
+            $task,
+            null,
+            ['tag_id' => $tagId],
+            Task::class
+        );
+
+        TaskHistory::log(
+            $taskId,
+            'tag_attached',
+            'Tag attached to task',
+            'tag',
+            null,
+            (string) $tagId
+        );
 
         return true;
     }
@@ -115,34 +266,69 @@ class TaskRepository implements TaskRepositoryInterface
         $task = $this->findOrFail($taskId);
         $task->tags()->detach($tagId);
 
+        ActivityLog::log(
+            'task_tag_detached',
+            'Detached tag from task: '.$task->title,
+            $task,
+            ['tag_id' => $tagId],
+            null,
+            Task::class
+        );
+
+        TaskHistory::log(
+            $taskId,
+            'tag_detached',
+            'Tag detached from task',
+            'tag',
+            (string) $tagId,
+            null
+        );
+
         return true;
     }
 
     public function getByProject(int $projectId): Collection
     {
-        return $this->model->where('project_id', $projectId)
+        $userId = auth()->id();
+
+        return $this->applyProjectVisibilityScope($this->model->newQuery(), $userId)
+            ->where('project_id', $projectId)
             ->with(['creator', 'assignee', 'tags', 'assignedUsers'])
             ->get();
     }
 
     public function getByUser(int $userId): Collection
     {
-        return $this->model->where('assigned_to', $userId)
-            ->orWhere('user_id', $userId)
-            ->orWhereHas('assignedUsers', fn ($q) => $q->where('user_id', $userId))
+        $authUserId = auth()->id();
+        $authUser = User::find($authUserId);
+
+        $query = $this->model->newQuery();
+
+        if (! $authUser || ! $authUser->isAdmin()) {
+            $query->where('assigned_to', $userId)
+                ->orWhere('user_id', $userId)
+                ->orWhereHas('assignedUsers', fn ($q) => $q->where('user_id', $userId));
+        }
+
+        return $this->applyProjectVisibilityScope($query, $authUserId)
             ->with(['project', 'creator', 'assignee', 'tags'])
             ->get();
     }
 
     public function filter(array $filters): Collection
     {
-        $query = $this->model->with([
-            'project',
-            'creator',
-            'assignee',
-            'tags',
-            'assignedUsers',
-        ]);
+        $userId = auth()->id();
+
+        $query = $this->applyProjectVisibilityScope(
+            $this->model->with([
+                'project',
+                'creator',
+                'assignee',
+                'tags',
+                'assignedUsers',
+            ])->newQuery(),
+            $userId
+        );
 
         if (! empty($filters['status'])) {
             $query->where('status', $filters['status']);
@@ -198,7 +384,12 @@ class TaskRepository implements TaskRepositoryInterface
 
     public function search(string $query, array $columns = ['title', 'description']): Collection
     {
-        return $this->model->with(['project', 'creator', 'assignee', 'tags'])
+        $userId = auth()->id();
+
+        return $this->applyProjectVisibilityScope(
+            $this->model->with(['project', 'creator', 'assignee', 'tags'])->newQuery(),
+            $userId
+        )
             ->where(function ($q) use ($query, $columns) {
                 foreach ($columns as $column) {
                     $q->orWhere($column, 'like', "%{$query}%");

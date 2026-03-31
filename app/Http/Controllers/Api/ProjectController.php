@@ -82,7 +82,7 @@ class ProjectController extends Controller
     public function filter(Request $request): AnonymousResourceCollection
     {
         $filters = $request->only([
-            'status', 'user_id', 'created_by',
+            'status', 'visibility', 'user_id', 'created_by',
             'from_date', 'to_date', 'sort_by', 'sort_dir',
         ]);
         $projects = $this->service->filter($filters);

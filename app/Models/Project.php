@@ -15,6 +15,7 @@ class Project extends Model
         'user_id',
         // 'department_id',
         'status',
+        'visibility',
         'start_date',
         'end_date',
         'client_id',
@@ -56,5 +57,26 @@ class Project extends Model
     public function labels(): BelongsToMany
     {
         return $this->belongsToMany(Label::class);
+    }
+
+    /**
+     * Returns true if the given user can see this project.
+     * Open projects are visible to everyone; closed projects only to the creator and members.
+     * Admins can see all projects.
+     */
+    public function isAccessibleBy(int $userId): bool
+    {
+        $user = User::find($userId);
+
+        if ($user && $user->isAdmin()) {
+            return true;
+        }
+
+        if ($this->visibility === 'open') {
+            return true;
+        }
+
+        return $this->user_id === $userId
+            || $this->members()->where('user_id', $userId)->exists();
     }
 }

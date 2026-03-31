@@ -3,6 +3,7 @@
 namespace App\Repositories;
 
 use App\Contracts\CommentRepositoryInterface;
+use App\Models\ActivityLog;
 use App\Models\Comment;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -45,21 +46,59 @@ class CommentRepository implements CommentRepositoryInterface
 
     public function create(array $data): Comment
     {
-        return $this->model->create($data);
+        $comment = $this->model->create($data);
+
+        ActivityLog::log(
+            'comment_created',
+            'Created comment',
+            $comment,
+            null,
+            $data,
+            Comment::class
+        );
+
+        return $comment;
     }
 
     public function update(int $id, array $data): bool
     {
         $model = $this->findOrFail($id);
+        $oldValues = $model->toArray();
 
-        return $model->update($data);
+        $updated = $model->update($data);
+
+        if ($updated) {
+            ActivityLog::log(
+                'comment_updated',
+                'Updated comment',
+                $model,
+                $oldValues,
+                $data,
+                Comment::class
+            );
+        }
+
+        return $updated;
     }
 
     public function delete(int $id): bool
     {
         $model = $this->findOrFail($id);
 
-        return $model->delete();
+        $deleted = $model->delete();
+
+        if ($deleted) {
+            ActivityLog::log(
+                'comment_deleted',
+                'Deleted comment',
+                null,
+                ['id' => $id],
+                null,
+                Comment::class
+            );
+        }
+
+        return $deleted;
     }
 
     public function getByTask(int $taskId): Collection
