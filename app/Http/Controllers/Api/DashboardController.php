@@ -7,6 +7,7 @@ use App\Http\Resources\Admin\DashboardResource;
 use App\Models\Comment;
 use App\Models\Project;
 use App\Models\Task;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 
@@ -158,6 +159,7 @@ class DashboardController extends Controller
                     'action' => $action,
                     'target' => $task->title,
                     'time' => $this->formatTime($task->updated_at),
+                    'timestamp' => $task->updated_at,
                 ];
             });
 
@@ -180,9 +182,12 @@ class DashboardController extends Controller
             });
 
         $merged = $taskActivities->concat($commentActivities)
-            ->sortByDesc(fn ($item) => str_replace([' hour', ' day', 's ago'], ['', '', ''], $item['time']))
+            ->sortByDesc('timestamp')
             ->take(5)
-            ->values();
+            ->values()
+            ->map(function ($item) {
+                return $item;
+            });
 
         return $merged->toArray();
     }
@@ -202,19 +207,9 @@ class DashboardController extends Controller
 
     private function formatTime($date): string
     {
-        $diff = now()->diffInMinutes($date);
-
-        if ($diff < 60) {
-            return $diff.' minutes ago';
-        }
-
-        $hours = floor($diff / 60);
-        if ($hours < 24) {
-            return $hours.' hour'.($hours > 1 ? 's' : '').' ago';
-        }
-
-        $days = floor($hours / 24);
-
-        return $days.' day'.($days > 1 ? 's' : '').' ago';
+        return Carbon::parse($date)->diffForHumans([
+            'parts' => 2,
+            'short' => false,
+        ]);
     }
 }
