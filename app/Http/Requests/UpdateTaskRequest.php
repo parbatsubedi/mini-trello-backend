@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Label;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateTaskRequest extends FormRequest
@@ -31,7 +32,15 @@ class UpdateTaskRequest extends FormRequest
             'start_date' => 'nullable|date',
             'is_recurring' => 'nullable|boolean',
             'labels' => 'nullable|array',
-            'labels.*' => 'exists:labels,id',
+            'labels.*' => [
+                'exists:labels,id',
+                function ($attribute, $value, $fail) {
+                    $label = Label::find($value);
+                    if ($label && ! in_array($label->type, ['task', 'both'])) {
+                        $fail("Label with id $value is not valid for tasks.");
+                    }
+                },
+            ],
         ];
     }
 }

@@ -28,7 +28,15 @@ class StoreProjectRequest extends FormRequest
             'project_type' => 'required|string',
             'price' => 'required|numeric',
             'labels' => 'required|array',
-            'labels.*' => 'exists:labels,id',
+            'labels.*' => [
+                'exists:labels,id',
+                function ($attribute, $value, $fail) {
+                    $label = \App\Models\Label::find($value);
+                    if ($label && !in_array($label->type, ['project', 'both'])) {
+                        $fail("Label with id $value is not valid for projects.");
+                    }
+                },
+            ],
         ];
     }
 }

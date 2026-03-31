@@ -8,9 +8,23 @@ use Illuminate\Http\Request;
 
 class LabelController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        return response()->json(Label::all());
+        $query = Label::query();
+
+        $types = $request->input('type');
+
+        if ($types) {
+            if (is_array($types)) {
+                $query->whereIn('type', $types);
+            } else {
+                if (in_array($types, ['project', 'task', 'both'])) {
+                    $query->where('type', $types);
+                }
+            }
+        }
+
+        return response()->json($query->get());
     }
 
     public function store(Request $request)
@@ -18,6 +32,7 @@ class LabelController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'color' => 'nullable|string|max:255',
+            'type' => 'nullable|in:project,task,both',
         ]);
 
         $label = Label::create($validated);
@@ -35,6 +50,7 @@ class LabelController extends Controller
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
             'color' => 'nullable|string|max:255',
+            'type' => 'nullable|in:project,task,both',
         ]);
 
         $label->update($validated);

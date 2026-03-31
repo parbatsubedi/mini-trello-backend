@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Label;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateProjectRequest extends FormRequest
@@ -16,7 +17,7 @@ class UpdateProjectRequest extends FormRequest
         return [
             'name' => 'required|required|string|max:255',
             'description' => 'required|string',
-            'user_id' => 'required|required|exists:users,id',
+            // 'user_id' => 'required|required|exists:users,id',
             // 'department_id' => 'required|exists:departments,id',
             'status' => 'required|in:active,on_hold,completed,archived',
             'visibility' => 'required|in:open,closed',
@@ -28,7 +29,15 @@ class UpdateProjectRequest extends FormRequest
             'project_type' => 'nullable|string',
             'price' => 'nullable|numeric',
             'labels' => 'nullable|array',
-            'labels.*' => 'exists:labels,id',
+            'labels.*' => [
+                'exists:labels,id',
+                function ($attribute, $value, $fail) {
+                    $label = Label::find($value);
+                    if ($label && ! in_array($label->type, ['project', 'both'])) {
+                        $fail("Label with id $value is not valid for projects.");
+                    }
+                },
+            ],
         ];
     }
 }

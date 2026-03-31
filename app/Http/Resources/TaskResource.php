@@ -26,7 +26,9 @@ class TaskResource extends JsonResource
             'subtasks' => TaskResource::collection($this->whenLoaded('subtasks')),
             'assignedUsers' => UserResource::collection($this->whenLoaded('assignedUsers')),
             'tags' => TagResource::collection($this->whenLoaded('tags')),
-            'labels' => LabelResource::collection($this->whenLoaded('labels')),
+            'labels' => LabelResource::collection($this->whenLoaded('labels', function () {
+                return $this->labels->filter(fn ($label) => in_array($label->type, ['task', 'both']));
+            })),
             'comments_count' => $this->whenCounted('comments'),
             'attachments_count' => $this->whenCounted('attachments'),
             'created_at' => $this->created_at,

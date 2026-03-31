@@ -15,13 +15,15 @@ class ProjectResource extends JsonResource
             'description' => $this->description,
             'status' => $this->status,
             'visibility' => $this->visibility,
-            'start_date' => $this->start_date,
-            'end_date' => $this->end_date,
+            'start_date' => $this->start_date?$this->start_date->format('Y-m-d'): null,
+            'end_date' => $this->end_date ? $this->end_date->format('Y-m-d') : null,
             'client_id' => $this->client_id,
             'project_type' => $this->project_type,
             'price' => $this->price,
             'client' => new ClientResource($this->whenLoaded('client')),
-            'labels' => LabelResource::collection($this->whenLoaded('labels')),
+            'labels' => LabelResource::collection($this->whenLoaded('labels', function () {
+                return $this->labels->filter(fn ($label) => in_array($label->type, ['project', 'both']));
+            })),
             'creator' => new UserResource($this->whenLoaded('creator')),
             'department' => new DepartmentResource($this->whenLoaded('department')),
             'members' => UserResource::collection($this->whenLoaded('members')),

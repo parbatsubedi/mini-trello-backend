@@ -10,6 +10,7 @@ class Label extends Model
     protected $fillable = [
         'name',
         'color',
+        'type',
     ];
 
     public function projects(): BelongsToMany
