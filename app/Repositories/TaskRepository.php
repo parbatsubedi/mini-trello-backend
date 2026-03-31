@@ -47,11 +47,14 @@ class TaskRepository implements TaskRepositoryInterface
     {
         $task = $this->model->create($data);
 
-        if (isset($data["assigned_users"])) {
-            $task->assignedUsers()->sync($data["assigned_users"]);
+        if (isset($data['assigned_users'])) {
+            $task->assignedUsers()->sync($data['assigned_users']);
         }
-        if (isset($data["tags"])) {
-            $task->tags()->sync($data["tags"]);
+        if (isset($data['tags'])) {
+            $task->tags()->sync($data['tags']);
+        }
+        if (isset($data['labels'])) {
+            $task->labels()->sync($data['labels']);
         }
 
         return $task;
@@ -63,11 +66,14 @@ class TaskRepository implements TaskRepositoryInterface
 
         $updated = $model->update($data);
 
-        if (isset($data["assigned_users"])) {
-            $model->assignedUsers()->sync($data["assigned_users"]);
+        if (isset($data['assigned_users'])) {
+            $model->assignedUsers()->sync($data['assigned_users']);
         }
-        if (isset($data["tags"])) {
-            $model->tags()->sync($data["tags"]);
+        if (isset($data['tags'])) {
+            $model->tags()->sync($data['tags']);
+        }
+        if (isset($data['labels'])) {
+            $model->labels()->sync($data['labels']);
         }
 
         return $updated;

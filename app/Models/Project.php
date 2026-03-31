@@ -13,15 +13,19 @@ class Project extends Model
         'name',
         'description',
         'user_id',
-        'department_id',
+        // 'department_id',
         'status',
         'start_date',
         'end_date',
+        'client_id',
+        'project_type',
+        'price',
     ];
 
     protected $casts = [
         'start_date' => 'date',
         'end_date' => 'date',
+        'price' => 'decimal:2',
     ];
 
     public function creator(): BelongsTo
@@ -42,5 +46,15 @@ class Project extends Model
     public function tasks(): HasMany
     {
         return $this->hasMany(Task::class);
+    }
+
+    public function client(): BelongsTo
+    {
+        return $this->belongsTo(Client::class);
+    }
+
+    public function labels(): BelongsToMany
+    {
+        return $this->belongsToMany(Label::class);
     }
 }

@@ -20,7 +20,7 @@ class TaskController extends Controller
     public function index(Request $request): AnonymousResourceCollection
     {
         $perPage = $request->input('per_page', 15);
-        $relations = ['project', 'creator', 'assignee', 'tags', 'assignedUsers'];
+        $relations = ['project', 'creator', 'assignee', 'tags', 'assignedUsers', 'labels'];
         $tasks = $this->service->paginate($perPage, ['*'], $relations);
 
         return TaskResource::collection($tasks);
@@ -37,7 +37,7 @@ class TaskController extends Controller
 
     public function show(int $id): JsonResponse
     {
-        $relations = ['project', 'creator', 'assignee', 'parent', 'subtasks', 'tags', 'assignedUsers', 'comments', 'attachments'];
+        $relations = ['project', 'creator', 'assignee', 'parent', 'subtasks', 'tags', 'assignedUsers', 'comments', 'attachments', 'labels'];
         $task = $this->service->findOrFail($id, ['*'], $relations);
 
         return (new TaskResource($task))->response();

@@ -27,6 +27,11 @@ class UpdateTaskRequest extends FormRequest
             'assigned_users.*' => 'exists:users,id',
             'tags' => 'nullable|array',
             'tags.*' => 'exists:tags,id',
+            'points' => 'nullable|integer',
+            'start_date' => 'nullable|date',
+            'is_recurring' => 'nullable|boolean',
+            'labels' => 'nullable|array',
+            'labels.*' => 'exists:labels,id',
         ];
     }
 }

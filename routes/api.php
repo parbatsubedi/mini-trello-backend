@@ -28,6 +28,8 @@ Route::middleware('auth.jwt')->group(function () {
     Route::apiResource('departments', DepartmentController::class);
     Route::apiResource('users', UserController::class)->parameters(['users' => 'user']);
     Route::apiResource('roles', RoleController::class);
+    Route::apiResource('clients', ClientController::class);
+    Route::apiResource('labels', LabelController::class);
     Route::apiResource('tags', TagController::class);
     Route::apiResource('projects', ProjectController::class);
     Route::apiResource('tasks', TaskController::class);

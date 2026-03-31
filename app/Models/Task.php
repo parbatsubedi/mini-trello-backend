@@ -19,10 +19,15 @@ class Task extends Model
         'priority',
         'status',
         'due_date',
+        'points',
+        'start_date',
+        'is_recurring',
     ];
 
     protected $casts = [
         'due_date' => 'date',
+        'start_date' => 'date',
+        'is_recurring' => 'boolean',
     ];
 
     public function project(): BelongsTo
@@ -68,5 +73,10 @@ class Task extends Model
     public function attachments(): HasMany
     {
         return $this->hasMany(Attachment::class);
+    }
+
+    public function labels(): BelongsToMany
+    {
+        return $this->belongsToMany(Label::class);
     }
 }

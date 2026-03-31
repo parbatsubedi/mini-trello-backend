@@ -45,10 +45,14 @@ class ProjectRepository implements ProjectRepositoryInterface
 
     public function create(array $data): Project
     {
+        $data['user_id'] = auth()->id();
         $project = $this->model->create($data);
 
         if (isset($data['members'])) {
             $project->members()->sync($data['members']);
+        }
+        if (isset($data['labels'])) {
+            $project->labels()->sync($data['labels']);
         }
 
         return $project;
@@ -62,6 +66,9 @@ class ProjectRepository implements ProjectRepositoryInterface
 
         if (isset($data['members'])) {
             $model->members()->sync($data['members']);
+        }
+        if (isset($data['labels'])) {
+            $model->labels()->sync($data['labels']);
         }
 
         return $updated;
@@ -106,9 +113,9 @@ class ProjectRepository implements ProjectRepositoryInterface
             $query->where('status', $filters['status']);
         }
 
-        if (! empty($filters['department_id'])) {
-            $query->where('department_id', $filters['department_id']);
-        }
+        // if (! empty($filters['department_id'])) {
+        //     $query->where('department_id', $filters['department_id']);
+        // }
 
         if (! empty($filters['user_id'])) {
             $query->where(function ($q) use ($filters) {

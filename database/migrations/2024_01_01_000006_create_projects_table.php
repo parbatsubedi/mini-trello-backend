@@ -13,7 +13,7 @@ return new class extends Migration
             $table->string('name');
             $table->text('description')->nullable();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('department_id')->nullable()->constrained()->nullOnDelete();
+            // $table->foreignId('department_id')->nullable()->constrained()->nullOnDelete();
             // $table->enum('status', ['active', 'on_hold', 'completed', 'archived'])->default('active');
             $table->string('status', 50)->default('active');
             $table->date('start_date')->nullable();

@@ -17,7 +17,7 @@ class UpdateUserRequest extends FormRequest
             'name' => 'sometimes|required|string|max:255',
             'email' => 'sometimes|required|email|unique:users,email,'.$this->route('user'),
             'password' => 'nullable|string|min:8|confirmed',
-            'department_id' => 'nullable|exists:departments,id',
+            // 'department_id' => 'nullable|exists:departments,id',
             'roles' => 'nullable|array',
             'roles.*' => 'exists:roles,id',
             'projects' => 'nullable|array',

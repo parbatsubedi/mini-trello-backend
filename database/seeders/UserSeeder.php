@@ -27,7 +27,7 @@ class UserSeeder extends Seeder
             [
                 'name' => 'John Developer',
                 'password' => Hash::make('password'),
-                'department_id' => $engineeringDept->id ?? null,
+                // 'department_id' => $engineeringDept->id ?? null,
             ]
         );
         $devLead->roles()->sync([4]);
@@ -37,7 +37,7 @@ class UserSeeder extends Seeder
             [
                 'name' => 'Jane Coder',
                 'password' => Hash::make('password'),
-                'department_id' => $engineeringDept->id ?? null,
+                // 'department_id' => $engineeringDept->id ?? null,
             ]
         );
         $developer->roles()->sync([5]);
