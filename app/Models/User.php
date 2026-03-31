@@ -18,12 +18,15 @@ class User extends Authenticatable implements JWTSubject
         'name',
         'email',
         'password',
-        // 'department_id',
+        'locked_at',
+        'login_attempts',
     ];
 
     protected $hidden = [
         'password',
         'remember_token',
+        'locked_at',
+        'login_attempts',
     ];
 
     protected function casts(): array
@@ -31,6 +34,7 @@ class User extends Authenticatable implements JWTSubject
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'locked_at' => 'datetime',
         ];
     }
 
@@ -92,5 +96,34 @@ class User extends Authenticatable implements JWTSubject
     public function isAdmin(): bool
     {
         return $this->roles()->where('slug', 'admin')->exists();
+    }
+
+    public function isLocked(): bool
+    {
+        return $this->locked_at !== null && $this->locked_at->isFuture();
+    }
+
+    public function lock(): void
+    {
+        $this->locked_at = now()->addMinutes(config('auth.lockout_duration'));
+        $this->save();
+    }
+
+    public function unlock(): void
+    {
+        $this->locked_at = null;
+        $this->login_attempts = 0;
+        $this->save();
+    }
+
+    public function incrementLoginAttempts(): void
+    {
+        $this->increment('login_attempts');
+    }
+
+    public function resetLoginAttempts(): void
+    {
+        $this->login_attempts = 0;
+        $this->save();
     }
 }

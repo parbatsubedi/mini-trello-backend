@@ -33,12 +33,52 @@ class AuthController extends Controller
 
     public function login(LoginRequest $request): JsonResponse
     {
+        $user = User::where('email', $request->email)->first();
+
+        if ($user && $user->isLocked()) {
+            $remainingTime = now()->diffForHumans($user->locked_at, [
+                'parts' => 2,
+                'short' => true,
+                'syntax' => \Carbon\CarbonInterface::DIFF_ABSOLUTE,
+            ]);
+
+            return response()->json([
+                'message' => "Account is locked. Try again in {$remainingTime}.",
+                'locked_until' => $user->locked_at,
+            ], 423);
+        }
+
         $credentials = $request->only('email', 'password');
 
         if (! $token = JWTAuth::attempt($credentials)) {
+            if ($user) {
+                $maxAttempts = config('auth.max_login_attempts');
+                $user->incrementLoginAttempts();
+
+                if ($user->login_attempts >= $maxAttempts) {
+                    $user->lock();
+
+                    return response()->json([
+                        'message' => 'Too many failed attempts. Account locked.',
+                        'locked_until' => $user->locked_at,
+                    ], 423);
+                }
+
+                $remainingAttempts = $maxAttempts - $user->login_attempts;
+
+                return response()->json([
+                    'message' => 'Invalid credentials',
+                    'remaining_attempts' => $remainingAttempts,
+                ], 401);
+            }
+
             return response()->json([
                 'message' => 'Invalid credentials',
             ], 401);
+        }
+
+        if ($user) {
+            $user->resetLoginAttempts();
         }
 
         return $this->respondWithToken($token);
