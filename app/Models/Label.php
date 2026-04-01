@@ -7,6 +7,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Label extends Model
 {
+
+    const TYPE_TASK = 'task';
+    const TYPE_PROJECT = 'project';
+    const TYPE_BOTH = 'both';
+    
     protected $fillable = [
         'name',
         'color',

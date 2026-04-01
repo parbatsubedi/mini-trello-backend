@@ -20,7 +20,7 @@ class ProjectController extends Controller
     public function index(Request $request): AnonymousResourceCollection
     {
         $perPage = $request->input('per_page', 15);
-        $relations = ['creator', 'department', 'members', 'client', 'labels'];
+        $relations = ['creator', 'department', 'members', 'client', 'labels','tasks'];
         $projects = $this->service->paginate($perPage, ['*'], $relations);
 
         return ProjectResource::collection($projects);
@@ -37,7 +37,7 @@ class ProjectController extends Controller
 
     public function show(int $id): JsonResponse
     {
-        $project = $this->service->findOrFail($id, ['*'], ['creator', 'department', 'members', 'tasks', 'client', 'labels']);
+        $project = $this->service->findOrFail($id, ['*'], ['creator', 'department', 'members', 'tasks', 'client', 'labels','tasks.assignee', 'tasks.tags', 'tasks.attachments', 'tasks.collaborators', 'tasks.comments']);
 
         return (new ProjectResource($project))->response();
     }

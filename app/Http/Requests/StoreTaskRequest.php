@@ -41,6 +41,8 @@ class StoreTaskRequest extends FormRequest
                     }
                 },
             ],
+            'collaborators' => 'nullable|array',
+            'collaborators.*' => 'exists:users,id',
         ];
     }
 }

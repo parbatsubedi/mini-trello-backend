@@ -14,6 +14,7 @@ class CommentResource extends JsonResource
             'content' => $this->content,
             'task_id' => $this->task_id,
             'user' => new UserResource($this->whenLoaded('user')),
+            'task' => new TaskResource($this->whenLoaded('task')),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

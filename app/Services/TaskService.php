@@ -50,12 +50,27 @@ class TaskService
 
     public function assignUser(int $taskId, int $userId): bool
     {
-        return $this->repository->assignUser($taskId, $userId);
+        return $this->repository->assignUsers($taskId, [$userId]);
+    }
+
+    public function assignUsers(int $taskId, array $userIds): bool
+    {
+        return $this->repository->assignUsers($taskId, $userIds);
+    }
+
+    public function assignCollaborators(int $taskId, array $userIds): bool
+    {
+        return $this->repository->assignCollaborators($taskId, $userIds);
     }
 
     public function removeUser(int $taskId, int $userId): bool
     {
         return $this->repository->removeUser($taskId, $userId);
+    }
+
+    public function removeCollaborator(int $taskId, int $userId): bool
+    {
+        return $this->repository->removeCollaborator($taskId, $userId);
     }
 
     public function attachTag(int $taskId, int $tagId): bool

@@ -57,7 +57,22 @@ class Task extends Model
 
     public function assignedUsers(): BelongsToMany
     {
-        return $this->belongsToMany(User::class, 'task_user');
+        return $this->belongsToMany(User::class, 'task_user')
+            ->withPivot('is_collaborator')
+            ->wherePivot('is_collaborator', false);
+    }
+
+    public function collaborators(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'task_user')
+            ->withPivot('is_collaborator')
+            ->wherePivot('is_collaborator', true);
+    }
+
+    public function allUsers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'task_user')
+            ->withPivot('is_collaborator');
     }
 
     public function tags(): BelongsToMany

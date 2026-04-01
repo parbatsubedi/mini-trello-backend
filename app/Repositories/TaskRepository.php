@@ -3,7 +3,9 @@
 namespace App\Repositories;
 
 use App\Contracts\TaskRepositoryInterface;
+use App\Models\ActivityLog;
 use App\Models\Task;
+use App\Models\TaskHistory;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -81,6 +83,7 @@ class TaskRepository implements TaskRepositoryInterface
 
     public function create(array $data): Task
     {
+        $data['user_id'] = auth()->id();
         $task = $this->model->create($data);
 
         if (isset($data['assigned_users'])) {
@@ -91,6 +94,9 @@ class TaskRepository implements TaskRepositoryInterface
         }
         if (isset($data['labels'])) {
             $task->labels()->sync($data['labels']);
+        }
+        if (isset($data['collaborators'])) {
+            $task->collaborators()->sync($data['collaborators']);
         }
 
         ActivityLog::log(
@@ -129,6 +135,9 @@ class TaskRepository implements TaskRepositoryInterface
         }
         if (isset($data['labels'])) {
             $model->labels()->sync($data['labels']);
+        }
+        if (isset($data['collaborators'])) {
+            $model->collaborators()->sync($data['collaborators']);
         }
 
         ActivityLog::log(
@@ -185,25 +194,66 @@ class TaskRepository implements TaskRepositoryInterface
 
     public function assignUser(int $taskId, int $userId): bool
     {
+        return $this->assignUsers($taskId, [$userId]);
+    }
+
+    public function assignUsers(int $taskId, array $userIds): bool
+    {
         $task = $this->findOrFail($taskId);
-        $task->assignedUsers()->attach($userId);
+
+        $syncData = [];
+        foreach ($userIds as $userId) {
+            $syncData[$userId] = ['is_collaborator' => false];
+        }
+        $task->assignedUsers()->sync($syncData);
 
         ActivityLog::log(
-            'task_user_assigned',
-            'Assigned user to task: '.$task->title,
+            'task_users_assigned',
+            'Assigned users to task: '.$task->title,
             $task,
             null,
-            ['user_id' => $userId],
+            ['user_ids' => $userIds],
             Task::class
         );
 
         TaskHistory::log(
             $taskId,
-            'user_assigned',
-            'User assigned to task',
-            'assigned_user',
+            'users_assigned',
+            'Users assigned to task',
+            'assigned_users',
             null,
-            (string) $userId
+            implode(',', $userIds)
+        );
+
+        return true;
+    }
+
+    public function assignCollaborators(int $taskId, array $userIds): bool
+    {
+        $task = $this->findOrFail($taskId);
+
+        $syncData = [];
+        foreach ($userIds as $userId) {
+            $syncData[$userId] = ['is_collaborator' => true];
+        }
+        $task->collaborators()->sync($syncData);
+
+        ActivityLog::log(
+            'task_collaborators_assigned',
+            'Assigned collaborators to task: '.$task->title,
+            $task,
+            null,
+            ['user_ids' => $userIds],
+            Task::class
+        );
+
+        TaskHistory::log(
+            $taskId,
+            'collaborators_assigned',
+            'Collaborators assigned to task',
+            'collaborators',
+            null,
+            implode(',', $userIds)
         );
 
         return true;
@@ -228,6 +278,32 @@ class TaskRepository implements TaskRepositoryInterface
             'user_removed',
             'User removed from task',
             'assigned_user',
+            (string) $userId,
+            null
+        );
+
+        return true;
+    }
+
+    public function removeCollaborator(int $taskId, int $userId): bool
+    {
+        $task = $this->findOrFail($taskId);
+        $task->collaborators()->detach($userId);
+
+        ActivityLog::log(
+            'task_collaborator_removed',
+            'Removed collaborator from task: '.$task->title,
+            $task,
+            ['user_id' => $userId],
+            null,
+            Task::class
+        );
+
+        TaskHistory::log(
+            $taskId,
+            'collaborator_removed',
+            'Collaborator removed from task',
+            'collaborator',
             (string) $userId,
             null
         );

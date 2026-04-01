@@ -34,6 +34,7 @@ class ProjectResource extends JsonResource
             'tasks_completed' => $this->when($this->tasks_count > 0, function () {
                 return $this->tasks()->where('status', 'done')->count();
             }, 0),
+            'tasks' => TaskResource::collection($this->whenLoaded('tasks')),
             'total_tasks' => $this->tasks_count,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,

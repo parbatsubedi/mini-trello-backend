@@ -9,6 +9,11 @@ class UserResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        // $names = explode(' ', trim($this->name));
+
+        // $firstInitial = isset($names[0]) ? strtoupper($names[0][0]) : '';
+        // $secondInitial = isset($names[1]) ? strtoupper($names[1][0]) : '';
+        
         return [
             'id' => $this->id,
             'name' => $this->name,

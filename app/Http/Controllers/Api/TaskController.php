@@ -59,10 +59,18 @@ class TaskController extends Controller
 
     public function assignUser(Request $request, int $id): JsonResponse
     {
-        $request->validate(['user_id' => 'required|exists:users,id']);
-        $this->service->assignUser($id, $request->user_id);
+        $request->validate(['user_ids' => 'required|array', 'user_ids.*' => 'exists:users,id']);
+        $this->service->assignUsers($id, $request->user_ids);
 
-        return response()->json(['message' => 'User assigned successfully']);
+        return response()->json(['message' => 'Users assigned successfully']);
+    }
+
+    public function assignCollaborators(Request $request, int $id): JsonResponse
+    {
+        $request->validate(['user_ids' => 'required|array', 'user_ids.*' => 'exists:users,id']);
+        $this->service->assignCollaborators($id, $request->user_ids);
+
+        return response()->json(['message' => 'Collaborators assigned successfully']);
     }
 
     public function removeUser(Request $request, int $id): JsonResponse
@@ -71,6 +79,14 @@ class TaskController extends Controller
         $this->service->removeUser($id, $request->user_id);
 
         return response()->json(['message' => 'User removed successfully']);
+    }
+
+    public function removeCollaborator(Request $request, int $id): JsonResponse
+    {
+        $request->validate(['user_id' => 'required|exists:users,id']);
+        $this->service->removeCollaborator($id, $request->user_id);
+
+        return response()->json(['message' => 'Collaborator removed successfully']);
     }
 
     public function attachTag(Request $request, int $id): JsonResponse

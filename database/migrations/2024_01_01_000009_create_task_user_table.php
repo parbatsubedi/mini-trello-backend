@@ -12,6 +12,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('task_id')->constrained()->cascadeOnDelete();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->boolean('is_collaborator')->default(false);
             $table->timestamps();
 
             $table->unique(['task_id', 'user_id']);

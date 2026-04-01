@@ -60,7 +60,9 @@ Route::middleware('auth.jwt')->group(function () {
 
     Route::prefix('tasks/{task}')->group(function () {
         Route::post('assign-user', [TaskController::class, 'assignUser']);
+        Route::post('assign-collaborators', [TaskController::class, 'assignCollaborators']);
         Route::delete('remove-user', [TaskController::class, 'removeUser']);
+        Route::delete('remove-collaborator', [TaskController::class, 'removeCollaborator']);
         Route::post('attach-tag', [TaskController::class, 'attachTag']);
         Route::delete('detach-tag', [TaskController::class, 'detachTag']);
     });
