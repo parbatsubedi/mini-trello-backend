@@ -45,20 +45,63 @@ class DepartmentRepository implements BaseRepositoryInterface
 
     public function create(array $data): Department
     {
-        return $this->model->create($data);
+        return DB::transaction(function () use ($data) {
+            $department = $this->model->create($data);
+
+            ActivityLog::log(
+                'department_created',
+                'Created department: '.$department->name,
+                $department,
+                null,
+                $data,
+                Department::class
+            );
+
+            return $department;
+        });
     }
 
     public function update(int $id, array $data): bool
     {
-        $model = $this->findOrFail($id);
+        return DB::transaction(function () use ($id, $data) {
+            $model = $this->findOrFail($id);
+            $oldValues = $model->toArray();
 
-        return $model->update($data);
+            $updated = $model->update($data);
+
+            ActivityLog::log(
+                'department_updated',
+                'Updated department: '.$model->name,
+                $model,
+                $oldValues,
+                $data,
+                Department::class
+            );
+
+            return $updated;
+        });
     }
 
     public function delete(int $id): bool
     {
-        $model = $this->findOrFail($id);
+        return DB::transaction(function () {
+            $model = $this->findOrFail($id);
+            $deptName = $model->name;
 
-        return $model->delete();
+            $deleted = $model->delete();
+
+            if ($deleted) {
+                ActivityLog::log(
+                    'department_deleted',
+                    'Deleted department: '.$deptName,
+                    null,
+                    ['id' => $id, 'name' => $deptName],
+                    null,
+                    Department::class
+                );
+            }
+
+            return $deleted;
+        });
     }
 }

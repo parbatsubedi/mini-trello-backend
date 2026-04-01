@@ -82,107 +82,117 @@ class ProjectRepository implements ProjectRepositoryInterface
 
     public function create(array $data): Project
     {
-        $data['user_id'] = auth()->id();
-        $project = $this->model->create($data);
+        return DB::transaction(function () use ($data) {
+            $data['user_id'] = auth()->id();
+            $project = $this->model->create($data);
 
-        if (isset($data['members'])) {
-            $project->members()->sync($data['members']);
-        }
-        if (isset($data['labels'])) {
-            $project->labels()->sync($data['labels']);
-        }
+            if (isset($data['members'])) {
+                $project->members()->sync($data['members']);
+            }
+            if (isset($data['labels'])) {
+                $project->labels()->sync($data['labels']);
+            }
 
-        ActivityLog::log(
-            'project_created',
-            'Created project: '.$project->name,
-            $project,
-            null,
-            $data,
-            Project::class
-        );
+            ActivityLog::log(
+                'project_created',
+                'Created project: '.$project->name,
+                $project,
+                null,
+                $data,
+                Project::class
+            );
 
-        return $project;
+            return $project;
+        });
     }
 
     public function update(int $id, array $data): bool
     {
-        $model = $this->findOrFail($id);
-        $oldValues = $model->toArray();
+        return DB::transaction(function () use ($id, $data) {
+            $model = $this->findOrFail($id);
+            $oldValues = $model->toArray();
 
-        $updated = $model->update($data);
+            $updated = $model->update($data);
 
-        if (isset($data['members'])) {
-            $model->members()->sync($data['members']);
-        }
-        if (isset($data['labels'])) {
-            $model->labels()->sync($data['labels']);
-        }
+            if (isset($data['members'])) {
+                $model->members()->sync($data['members']);
+            }
+            if (isset($data['labels'])) {
+                $model->labels()->sync($data['labels']);
+            }
 
-        ActivityLog::log(
-            'project_updated',
-            'Updated project: '.$model->name,
-            $model,
-            $oldValues,
-            $data,
-            Project::class
-        );
+            ActivityLog::log(
+                'project_updated',
+                'Updated project: '.$model->name,
+                $model,
+                $oldValues,
+                $data,
+                Project::class
+            );
 
-        return $updated;
+            return $updated;
+        });
     }
 
     public function delete(int $id): bool
     {
-        $model = $this->findOrFail($id);
-        $projectName = $model->name;
+        return DB::transaction(function () use ($id) {
+            $model = $this->findOrFail($id);
+            $projectName = $model->name;
 
-        $deleted = $model->delete();
+            $deleted = $model->delete();
 
-        if ($deleted) {
-            ActivityLog::log(
-                'project_deleted',
-                'Deleted project: '.$projectName,
-                null,
-                ['id' => $id, 'name' => $projectName],
-                null,
-                Project::class
-            );
-        }
+            if ($deleted) {
+                ActivityLog::log(
+                    'project_deleted',
+                    'Deleted project: '.$projectName,
+                    null,
+                    ['id' => $id, 'name' => $projectName],
+                    null,
+                    Project::class
+                );
+            }
 
-        return $deleted;
+            return $deleted;
+        });
     }
 
     public function assignMember(int $projectId, int $userId): bool
     {
-        $project = $this->findOrFail($projectId);
-        $project->members()->attach($userId);
+        return DB::transaction(function () use ($projectId, $userId) {
+            $project = $this->findOrFail($projectId);
+            $project->members()->syncWithoutDetaching([$userId => ['role' => 'member']]);
 
-        ActivityLog::log(
-            'project_member_assigned',
-            'Assigned member to project: '.$project->name,
-            $project,
-            null,
-            ['user_id' => $userId],
-            Project::class
-        );
+            ActivityLog::log(
+                'project_member_assigned',
+                'Assigned member to project: '.$project->name,
+                $project,
+                null,
+                ['user_id' => $userId],
+                Project::class
+            );
 
-        return true;
+            return true;
+        });
     }
 
     public function removeMember(int $projectId, int $userId): bool
     {
-        $project = $this->findOrFail($projectId);
-        $project->members()->detach($userId);
+        return DB::transaction(function () use ($projectId, $userId) {
+            $project = $this->findOrFail($projectId);
+            $project->members()->detach($userId);
 
-        ActivityLog::log(
-            'project_member_removed',
-            'Removed member from project: '.$project->name,
-            $project,
-            ['user_id' => $userId],
-            null,
-            Project::class
-        );
+            ActivityLog::log(
+                'project_member_removed',
+                'Removed member from project: '.$project->name,
+                $project,
+                ['user_id' => $userId],
+                null,
+                Project::class
+            );
 
-        return true;
+            return true;
+        });
     }
 
     public function getByUser(int $userId): Collection

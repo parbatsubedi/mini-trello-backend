@@ -7,58 +7,83 @@ use App\Http\Requests\StoreCommentRequest;
 use App\Http\Requests\UpdateCommentRequest;
 use App\Http\Resources\CommentResource;
 use App\Services\CommentService;
+use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class CommentController extends Controller
 {
+    use ApiResponse;
+
     public function __construct(
         protected CommentService $service
     ) {}
 
-    public function index(Request $request): AnonymousResourceCollection
+    public function index(Request $request): JsonResponse
     {
-        $perPage = $request->input('per_page', 15);
-        $comments = $this->service->paginate($perPage, ['*'], ['user']);
+        try {
+            $perPage = $request->input('per_page', 15);
+            $comments = $this->service->paginate($perPage, ['*'], ['user']);
 
-        return CommentResource::collection($comments);
+            return $this->paginatedResponse($comments, 'Comments fetched successfully');
+        } catch (\Exception $e) {
+            return $this->errorResponse('Failed to fetch comments: '.$e->getMessage(), 500);
+        }
     }
 
     public function store(StoreCommentRequest $request): JsonResponse
     {
-        $comment = $this->service->create($request->validated());
+        try {
+            $comment = $this->service->create($request->validated());
 
-        return (new CommentResource($comment))
-            ->response()
-            ->setStatusCode(201);
+            return $this->successResponse(new CommentResource($comment), 'Comment created successfully', 201);
+        } catch (\Exception $e) {
+            return $this->errorResponse('Failed to create comment: '.$e->getMessage(), 500);
+        }
     }
 
     public function show(int $id): JsonResponse
     {
-        $comment = $this->service->findOrFail($id, ['*'], ['user']);
+        try {
+            $comment = $this->service->findOrFail($id, ['*'], ['user']);
 
-        return (new CommentResource($comment))->response();
+            return $this->successResponse(new CommentResource($comment), 'Comment fetched successfully');
+        } catch (\Exception $e) {
+            return $this->errorResponse('Failed to fetch comment: '.$e->getMessage(), 500);
+        }
     }
 
     public function update(UpdateCommentRequest $request, int $id): JsonResponse
     {
-        $this->service->update($id, $request->validated());
+        try {
+            $this->service->update($id, $request->validated());
+            $comment = $this->service->findOrFail($id);
 
-        return (new CommentResource($this->service->findOrFail($id)))->response();
+            return $this->successResponse(new CommentResource($comment), 'Comment updated successfully');
+        } catch (\Exception $e) {
+            return $this->errorResponse('Failed to update comment: '.$e->getMessage(), 500);
+        }
     }
 
     public function destroy(int $id): JsonResponse
     {
-        $this->service->delete($id);
+        try {
+            $this->service->delete($id);
 
-        return response()->json(['message' => 'Comment deleted successfully']);
+            return $this->successResponse(null, 'Comment deleted successfully');
+        } catch (\Exception $e) {
+            return $this->errorResponse('Failed to delete comment: '.$e->getMessage(), 500);
+        }
     }
 
-    public function getByTask(int $taskId): AnonymousResourceCollection
+    public function getByTask(int $taskId): JsonResponse
     {
-        $comments = $this->service->getByTask($taskId);
+        try {
+            $comments = $this->service->getByTask($taskId);
 
-        return CommentResource::collection($comments);
+            return $this->successResponse(CommentResource::collection($comments), 'Comments fetched successfully');
+        } catch (\Exception $e) {
+            return $this->errorResponse('Failed to fetch comments: '.$e->getMessage(), 500);
+        }
     }
 }

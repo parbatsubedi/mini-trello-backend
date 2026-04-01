@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 
 class TaskRepository implements TaskRepositoryInterface
 {
@@ -83,86 +84,101 @@ class TaskRepository implements TaskRepositoryInterface
 
     public function create(array $data): Task
     {
-        $data['user_id'] = auth()->id();
-        $task = $this->model->create($data);
+        return DB::transaction(function () use ($data) {
+            $data['user_id'] = auth()->id();
+            $task = $this->model->create($data);
 
-        if (isset($data['assigned_users'])) {
-            $task->assignedUsers()->sync($data['assigned_users']);
-        }
-        if (isset($data['tags'])) {
-            $task->tags()->sync($data['tags']);
-        }
-        if (isset($data['labels'])) {
-            $task->labels()->sync($data['labels']);
-        }
-        if (isset($data['collaborators'])) {
-            $task->collaborators()->sync($data['collaborators']);
-        }
+            if (isset($data['assigned_users'])) {
+                $task->assignedUsers()->sync($this->formatSyncData($data['assigned_users'], false));
+            }
+            if (isset($data['tags'])) {
+                $task->tags()->sync($data['tags']);
+            }
+            if (isset($data['labels'])) {
+                $task->labels()->sync($data['labels']);
+            }
+            if (isset($data['collaborators'])) {
+                $task->collaborators()->sync($this->formatSyncData($data['collaborators'], true));
+            }
 
-        ActivityLog::log(
-            'task_created',
-            'Created task: '.$task->title,
-            $task,
-            null,
-            $data,
-            Task::class
-        );
+            \Log::info('Task created: '.$task->title, ['task_id' => $task->id, 'data' => $data]);
+            ActivityLog::log(
+                'task_created',
+                'Created task: '.$task->title,
+                $task,
+                null,
+                $data,
+                Task::class
+            );
 
-        TaskHistory::log(
-            $task->id,
-            'task_created',
-            'Task created',
-            null,
-            null,
-            $task->title
-        );
+            TaskHistory::log(
+                $task->id,
+                'task_created',
+                'Task created',
+                null,
+                null,
+                $data
+            );
 
-        return $task;
+            return $task;
+        });
     }
 
     public function update(int $id, array $data): bool
     {
-        $model = $this->findOrFail($id);
-        $oldValues = $model->toArray();
+        return DB::transaction(function () use ($id, $data) {
+            $model = $this->findOrFail($id);
+            $oldValues = $model->toArray();
 
-        $updated = $model->update($data);
+            $updated = $model->update($data);
 
-        if (isset($data['assigned_users'])) {
-            $model->assignedUsers()->sync($data['assigned_users']);
-        }
-        if (isset($data['tags'])) {
-            $model->tags()->sync($data['tags']);
-        }
-        if (isset($data['labels'])) {
-            $model->labels()->sync($data['labels']);
-        }
-        if (isset($data['collaborators'])) {
-            $model->collaborators()->sync($data['collaborators']);
-        }
-
-        ActivityLog::log(
-            'task_updated',
-            'Updated task: '.$model->title,
-            $model,
-            $oldValues,
-            $data,
-            Task::class
-        );
-
-        foreach ($data as $field => $newValue) {
-            if (isset($oldValues[$field]) && $oldValues[$field] != $newValue) {
-                TaskHistory::log(
-                    $id,
-                    'field_changed',
-                    'Field changed: '.$field,
-                    $field,
-                    (string) $oldValues[$field],
-                    (string) $newValue
-                );
+            if (isset($data['assigned_users'])) {
+                $model->assignedUsers()->sync($this->formatSyncData($data['assigned_users'], false));
             }
+            if (isset($data['tags'])) {
+                $model->tags()->sync($data['tags']);
+            }
+            if (isset($data['labels'])) {
+                $model->labels()->sync($data['labels']);
+            }
+            if (isset($data['collaborators'])) {
+                $model->collaborators()->sync($this->formatSyncData($data['collaborators'], true));
+            }
+
+            ActivityLog::log(
+                'task_updated',
+                'Updated task: '.$model->title,
+                $model,
+                $oldValues,
+                $data,
+                Task::class
+            );
+
+            foreach ($data as $field => $newValue) {
+                if (isset($oldValues[$field]) && $oldValues[$field] != $newValue) {
+                    TaskHistory::log(
+                        $id,
+                        'field_changed',
+                        'Field changed: '.$field,
+                        $field,
+                        (string) $oldValues[$field],
+                        (string) $newValue
+                    );
+                }
+            }
+
+            return $updated;
+        });
+    }
+
+    protected function formatSyncData(array $userIds, bool $isCollaborator): array
+    {
+        $syncData = [];
+        foreach ($userIds as $userId) {
+            $syncData[$userId] = ['is_collaborator' => $isCollaborator];
         }
 
-        return $updated;
+        return $syncData;
     }
 
     public function delete(int $id): bool
@@ -199,168 +215,170 @@ class TaskRepository implements TaskRepositoryInterface
 
     public function assignUsers(int $taskId, array $userIds): bool
     {
-        $task = $this->findOrFail($taskId);
+        return DB::transaction(function () use ($taskId, $userIds) {
+            $task = $this->findOrFail($taskId);
+            $task->assignedUsers()->sync($this->formatSyncData($userIds, false));
 
-        $syncData = [];
-        foreach ($userIds as $userId) {
-            $syncData[$userId] = ['is_collaborator' => false];
-        }
-        $task->assignedUsers()->sync($syncData);
+            ActivityLog::log(
+                'task_users_assigned',
+                'Assigned users to task: '.$task->title,
+                $task,
+                null,
+                ['user_ids' => $userIds],
+                Task::class
+            );
 
-        ActivityLog::log(
-            'task_users_assigned',
-            'Assigned users to task: '.$task->title,
-            $task,
-            null,
-            ['user_ids' => $userIds],
-            Task::class
-        );
+            TaskHistory::log(
+                $taskId,
+                'users_assigned',
+                'Users assigned to task',
+                'assigned_users',
+                null,
+                implode(',', $userIds)
+            );
 
-        TaskHistory::log(
-            $taskId,
-            'users_assigned',
-            'Users assigned to task',
-            'assigned_users',
-            null,
-            implode(',', $userIds)
-        );
-
-        return true;
+            return true;
+        });
     }
 
     public function assignCollaborators(int $taskId, array $userIds): bool
     {
-        $task = $this->findOrFail($taskId);
+        return DB::transaction(function () use ($taskId, $userIds) {
+            $task = $this->findOrFail($taskId);
+            $task->collaborators()->sync($this->formatSyncData($userIds, true));
 
-        $syncData = [];
-        foreach ($userIds as $userId) {
-            $syncData[$userId] = ['is_collaborator' => true];
-        }
-        $task->collaborators()->sync($syncData);
+            ActivityLog::log(
+                'task_collaborators_assigned',
+                'Assigned collaborators to task: '.$task->title,
+                $task,
+                null,
+                ['user_ids' => $userIds],
+                Task::class
+            );
 
-        ActivityLog::log(
-            'task_collaborators_assigned',
-            'Assigned collaborators to task: '.$task->title,
-            $task,
-            null,
-            ['user_ids' => $userIds],
-            Task::class
-        );
+            TaskHistory::log(
+                $taskId,
+                'collaborators_assigned',
+                'Collaborators assigned to task',
+                'collaborators',
+                null,
+                implode(',', $userIds)
+            );
 
-        TaskHistory::log(
-            $taskId,
-            'collaborators_assigned',
-            'Collaborators assigned to task',
-            'collaborators',
-            null,
-            implode(',', $userIds)
-        );
-
-        return true;
+            return true;
+        });
     }
 
     public function removeUser(int $taskId, int $userId): bool
     {
-        $task = $this->findOrFail($taskId);
-        $task->assignedUsers()->detach($userId);
+        return DB::transaction(function () use ($taskId, $userId) {
+            $task = $this->findOrFail($taskId);
+            $task->assignedUsers()->detach($userId);
 
-        ActivityLog::log(
-            'task_user_removed',
-            'Removed user from task: '.$task->title,
-            $task,
-            ['user_id' => $userId],
-            null,
-            Task::class
-        );
+            ActivityLog::log(
+                'task_user_removed',
+                'Removed user from task: '.$task->title,
+                $task,
+                ['user_id' => $userId],
+                null,
+                Task::class
+            );
 
-        TaskHistory::log(
-            $taskId,
-            'user_removed',
-            'User removed from task',
-            'assigned_user',
-            (string) $userId,
-            null
-        );
+            TaskHistory::log(
+                $taskId,
+                'user_removed',
+                'User removed from task',
+                'assigned_user',
+                (string) $userId,
+                null
+            );
 
-        return true;
+            return true;
+        });
     }
 
     public function removeCollaborator(int $taskId, int $userId): bool
     {
-        $task = $this->findOrFail($taskId);
-        $task->collaborators()->detach($userId);
+        return DB::transaction(function () use ($taskId, $userId) {
+            $task = $this->findOrFail($taskId);
+            $task->collaborators()->detach($userId);
 
-        ActivityLog::log(
-            'task_collaborator_removed',
-            'Removed collaborator from task: '.$task->title,
-            $task,
-            ['user_id' => $userId],
-            null,
-            Task::class
-        );
+            ActivityLog::log(
+                'task_collaborator_removed',
+                'Removed collaborator from task: '.$task->title,
+                $task,
+                ['user_id' => $userId],
+                null,
+                Task::class
+            );
 
-        TaskHistory::log(
-            $taskId,
-            'collaborator_removed',
-            'Collaborator removed from task',
-            'collaborator',
-            (string) $userId,
-            null
-        );
+            TaskHistory::log(
+                $taskId,
+                'collaborator_removed',
+                'Collaborator removed from task',
+                'collaborator',
+                (string) $userId,
+                null
+            );
 
-        return true;
+            return true;
+        });
     }
 
     public function attachTag(int $taskId, int $tagId): bool
     {
-        $task = $this->findOrFail($taskId);
-        $task->tags()->attach($tagId);
+        return DB::transaction(function () use ($taskId, $tagId) {
+            $task = $this->findOrFail($taskId);
+            $task->tags()->attach($tagId);
 
-        ActivityLog::log(
-            'task_tag_attached',
-            'Attached tag to task: '.$task->title,
-            $task,
-            null,
-            ['tag_id' => $tagId],
-            Task::class
-        );
+            ActivityLog::log(
+                'task_tag_attached',
+                'Attached tag to task: '.$task->title,
+                $task,
+                null,
+                ['tag_id' => $tagId],
+                Task::class
+            );
 
-        TaskHistory::log(
-            $taskId,
-            'tag_attached',
-            'Tag attached to task',
-            'tag',
-            null,
-            (string) $tagId
-        );
+            TaskHistory::log(
+                $taskId,
+                'tag_attached',
+                'Tag attached to task',
+                'tag',
+                null,
+                (string) $tagId
+            );
 
-        return true;
+            return true;
+        });
     }
 
     public function detachTag(int $taskId, int $tagId): bool
     {
-        $task = $this->findOrFail($taskId);
-        $task->tags()->detach($tagId);
+        return DB::transaction(function () use ($taskId, $tagId) {
+            $task = $this->findOrFail($taskId);
+            $task->tags()->detach($tagId);
 
-        ActivityLog::log(
-            'task_tag_detached',
-            'Detached tag from task: '.$task->title,
-            $task,
-            ['tag_id' => $tagId],
-            null,
-            Task::class
-        );
+            ActivityLog::log(
+                'task_tag_detached',
+                'Detached tag from task: '.$task->title,
+                $task,
+                ['tag_id' => $tagId],
+                null,
+                Task::class
+            );
 
-        TaskHistory::log(
-            $taskId,
-            'tag_detached',
-            'Tag detached from task',
-            'tag',
-            (string) $tagId,
-            null
-        );
+            TaskHistory::log(
+                $taskId,
+                'tag_detached',
+                'Tag detached from task',
+                'tag',
+                (string) $tagId,
+                null
+            );
 
-        return true;
+            return true;
+        });
     }
 
     public function getByProject(int $projectId): Collection

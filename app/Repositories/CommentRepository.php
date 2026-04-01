@@ -46,59 +46,65 @@ class CommentRepository implements CommentRepositoryInterface
 
     public function create(array $data): Comment
     {
-        $comment = $this->model->create($data);
+        return DB::transaction(function () use ($data) {
+            $comment = $this->model->create($data);
 
-        ActivityLog::log(
-            'comment_created',
-            'Created comment',
-            $comment,
-            null,
-            $data,
-            Comment::class
-        );
+            ActivityLog::log(
+                'comment_created',
+                'Created comment',
+                $comment,
+                null,
+                $data,
+                Comment::class
+            );
 
-        return $comment;
+            return $comment;
+        });
     }
 
     public function update(int $id, array $data): bool
     {
-        $model = $this->findOrFail($id);
-        $oldValues = $model->toArray();
+        return DB::transaction(function () use ($id, $data) {
+            $model = $this->findOrFail($id);
+            $oldValues = $model->toArray();
 
-        $updated = $model->update($data);
+            $updated = $model->update($data);
 
-        if ($updated) {
-            ActivityLog::log(
-                'comment_updated',
-                'Updated comment',
-                $model,
-                $oldValues,
-                $data,
-                Comment::class
-            );
-        }
+            if ($updated) {
+                ActivityLog::log(
+                    'comment_updated',
+                    'Updated comment',
+                    $model,
+                    $oldValues,
+                    $data,
+                    Comment::class
+                );
+            }
 
-        return $updated;
+            return $updated;
+        });
     }
 
     public function delete(int $id): bool
     {
-        $model = $this->findOrFail($id);
+        return DB::transaction(function () use ($id) {
+            $model = $this->findOrFail($id);
 
-        $deleted = $model->delete();
+            $deleted = $model->delete();
 
-        if ($deleted) {
-            ActivityLog::log(
-                'comment_deleted',
-                'Deleted comment',
-                null,
-                ['id' => $id],
-                null,
-                Comment::class
-            );
-        }
+            if ($deleted) {
+                ActivityLog::log(
+                    'comment_deleted',
+                    'Deleted comment',
+                    null,
+                    ['id' => $id],
+                    null,
+                    Comment::class
+                );
+            }
 
-        return $deleted;
+            return $deleted;
+        });
     }
 
     public function getByTask(int $taskId): Collection

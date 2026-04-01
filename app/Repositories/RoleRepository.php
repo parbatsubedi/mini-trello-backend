@@ -45,11 +45,74 @@ class RoleRepository implements BaseRepositoryInterface
 
     public function create(array $data): Role
     {
-        $role = $this->model->create($data);
+        return DB::transaction(function () use ($data) {
+            $role = $this->model->create($data);
 
-        if (isset($data["users"])) {
-            $role->users()->sync($data["users"]);
-        }
+            if (isset($data["users"])) {
+                $role->users()->sync($data["users"]);
+            }
+
+            ActivityLog::log(
+                'role_created',
+                'Created role: '.$role->name,
+                $role,
+                null,
+                $data,
+                Role::class
+            );
+
+            return $role;
+        });
+    }
+
+    public function update(int $id, array $data): bool
+    {
+        return DB::transaction(function () use ($id, $data) {
+            $model = $this->findOrFail($id);
+            $oldValues = $model->toArray();
+
+            $updated = $model->update($data);
+
+            if (isset($data["users"])) {
+                $model->users()->sync($data["users"]);
+            }
+
+            ActivityLog::log(
+                'role_updated',
+                'Updated role: '.$model->name,
+                $model,
+                $oldValues,
+                $data,
+                Role::class
+            );
+
+            return $updated;
+        });
+    }
+
+    public function delete(int $id): bool
+    {
+        return DB::transaction(function () use ($id) {
+            $model = $this->findOrFail($id);
+            $roleName = $model->name;
+
+            $deleted = $model->delete();
+
+            if ($deleted) {
+                ActivityLog::log(
+                    'role_deleted',
+                    'Deleted role: '.$roleName,
+                    null,
+                    ['id' => $id, 'name' => $roleName],
+                    null,
+                    Role::class
+                );
+            }
+
+            return $deleted;
+        });
+    }
+}
 
         return $role;
     }
@@ -60,8 +123,8 @@ class RoleRepository implements BaseRepositoryInterface
 
         $updated = $model->update($data);
 
-        if (isset($data["users"])) {
-            $model->users()->sync($data["users"]);
+        if (isset($data['users'])) {
+            $model->users()->sync($data['users']);
         }
 
         return $updated;

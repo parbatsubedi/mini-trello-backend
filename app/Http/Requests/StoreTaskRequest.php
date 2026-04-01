@@ -18,7 +18,7 @@ class StoreTaskRequest extends FormRequest
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'project_id' => 'required|exists:projects,id',
-            'user_id' => 'required|exists:users,id',
+            // 'user_id' => 'required|exists:users,id',
             'assigned_to' => 'nullable|exists:users,id',
             'parent_id' => 'nullable|exists:tasks,id',
             'priority' => 'nullable|in:low,medium,high,urgent',

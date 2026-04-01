@@ -7,51 +7,50 @@ use App\Http\Resources\Admin\DashboardResource;
 use App\Models\Comment;
 use App\Models\Project;
 use App\Models\Task;
+use App\Traits\ApiResponse;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
 {
+    use ApiResponse;
+
     public function index(): JsonResponse
     {
-        $userId = Auth::id();
+        try {
+            $userId = Auth::id();
 
-        $totalProjects = Project::whereHas('members', function ($query) use ($userId) {
-            // $query->where('user_id', $userId);
-        })->count();
+            $totalProjects = Project::whereHas('members', function ($query) {})->count();
 
-        $completedTasks = Task::whereHas('project.members', function ($query) use ($userId) {
-            // $query->where('user_id', $userId);
-        })->where('status', 'done')->count();
+            $completedTasks = Task::whereHas('project.members', function ($query) {})->where('status', 'done')->count();
 
-        $inProgressTasks = Task::whereHas('project.members', function ($query) use ($userId) {
-            // $query->where('user_id', $userId);
-        })->whereIn('status', ['in_progress', 'review'])->count();
+            $inProgressTasks = Task::whereHas('project.members', function ($query) {})->whereIn('status', ['in_progress', 'review'])->count();
 
-        $totalTasks = Task::whereHas('project.members', function ($query) use ($userId) {
-            // $query->where('user_id', $userId);
-        })->count();
+            $totalTasks = Task::whereHas('project.members', function ($query) {})->count();
 
-        $efficiency = $totalTasks > 0 ? round(($completedTasks / $totalTasks) * 100) : 0;
+            $efficiency = $totalTasks > 0 ? round(($completedTasks / $totalTasks) * 100) : 0;
 
-        $stats = [
-            ['label' => 'Total Projects', 'value' => $totalProjects, 'change' => $this->getProjectChange(), 'color' => 'bg-blue-500'],
-            ['label' => 'Completed Tasks', 'value' => $completedTasks, 'change' => $this->getCompletedTaskChange(), 'color' => 'bg-green-500'],
-            ['label' => 'In Progress', 'value' => $inProgressTasks, 'change' => $this->getInProgressChange(), 'color' => 'bg-yellow-500'],
-            ['label' => 'Efficiency', 'value' => $efficiency.'%', 'change' => $this->getEfficiencyChange(), 'color' => 'bg-purple-500'],
-        ];
+            $stats = [
+                ['label' => 'Total Projects', 'value' => $totalProjects, 'change' => $this->getProjectChange(), 'color' => 'bg-blue-500'],
+                ['label' => 'Completed Tasks', 'value' => $completedTasks, 'change' => $this->getCompletedTaskChange(), 'color' => 'bg-green-500'],
+                ['label' => 'In Progress', 'value' => $inProgressTasks, 'change' => $this->getInProgressChange(), 'color' => 'bg-yellow-500'],
+                ['label' => 'Efficiency', 'value' => $efficiency.'%', 'change' => $this->getEfficiencyChange(), 'color' => 'bg-purple-500'],
+            ];
 
-        $recentProjects = $this->getRecentProjects($userId);
-        $recentActivity = $this->getRecentActivity($userId);
+            $recentProjects = $this->getRecentProjects($userId);
+            $recentActivity = $this->getRecentActivity($userId);
 
-        $dashboardResponse = new DashboardResource((object) [
-            'stats' => $stats,
-            'recentProjects' => $recentProjects,
-            'recentActivity' => $recentActivity,
-        ]);
+            $dashboardResponse = new DashboardResource((object) [
+                'stats' => $stats,
+                'recentProjects' => $recentProjects,
+                'recentActivity' => $recentActivity,
+            ]);
 
-        return response()->json($dashboardResponse);
+            return $this->successResponse($dashboardResponse, 'Dashboard data fetched successfully');
+        } catch (\Exception $e) {
+            return $this->errorResponse('Failed to fetch dashboard data: '.$e->getMessage(), 500);
+        }
     }
 
     private function getProjectChange(): string

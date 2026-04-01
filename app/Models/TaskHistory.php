@@ -34,8 +34,8 @@ class TaskHistory extends Model
         string $action,
         ?string $description = null,
         ?string $fieldChanged = null,
-        ?string $oldValue = null,
-        ?string $newValue = null
+        ?array $oldValue = null,
+        ?array $newValue = null
     ): self {
         return static::create([
             'task_id' => $taskId,

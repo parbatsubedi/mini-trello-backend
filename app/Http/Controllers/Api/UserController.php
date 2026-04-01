@@ -7,89 +7,126 @@ use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateUserRequest;
 use App\Http\Resources\UserResource;
 use App\Services\UserService;
+use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class UserController extends Controller
 {
+    use ApiResponse;
+
     public function __construct(
         protected UserService $service
     ) {}
 
-    public function index(Request $request): AnonymousResourceCollection
+    public function index(Request $request): JsonResponse
     {
-        $perPage = $request->input('per_page', 15);
-        $relations = ['department', 'roles'];
-        $users = $this->service->paginate($perPage, ['*'], $relations);
+        try {
+            $perPage = $request->input('per_page', 15);
+            $relations = ['department', 'roles'];
+            $users = $this->service->paginate($perPage, ['*'], $relations);
 
-        return UserResource::collection($users);
+            return $this->paginatedResponse($users, 'Users fetched successfully');
+        } catch (\Exception $e) {
+            return $this->errorResponse('Failed to fetch users: '.$e->getMessage(), 500);
+        }
     }
 
     public function store(StoreUserRequest $request): JsonResponse
     {
-        $user = $this->service->create($request->validated());
+        try {
+            $user = $this->service->create($request->validated());
 
-        return (new UserResource($user))
-            ->response()
-            ->setStatusCode(201);
+            return $this->successResponse(new UserResource($user), 'User created successfully', 201);
+        } catch (\Exception $e) {
+            return $this->errorResponse('Failed to create user: '.$e->getMessage(), 500);
+        }
     }
 
     public function show(int $id): JsonResponse
     {
-        $user = $this->service->findOrFail($id, ['*'], ['department', 'roles', 'projects', 'createdTasks', 'assignedTasks']);
+        try {
+            $user = $this->service->findOrFail($id, ['*'], ['department', 'roles', 'projects', 'createdTasks', 'assignedTasks']);
 
-        return (new UserResource($user))->response();
+            return $this->successResponse(new UserResource($user), 'User fetched successfully');
+        } catch (\Exception $e) {
+            return $this->errorResponse('Failed to fetch user: '.$e->getMessage(), 500);
+        }
     }
 
     public function update(UpdateUserRequest $request, int $id): JsonResponse
     {
-        $data = $request->validated();
-        if (isset($data['password']) && ! $data['password']) {
-            unset($data['password']);
+        try {
+            $data = $request->validated();
+            if (isset($data['password']) && ! $data['password']) {
+                unset($data['password']);
+            }
+
+            $this->service->update($id, $data);
+            $user = $this->service->findOrFail($id);
+
+            return $this->successResponse(new UserResource($user), 'User updated successfully');
+        } catch (\Exception $e) {
+            return $this->errorResponse('Failed to update user: '.$e->getMessage(), 500);
         }
-
-        $this->service->update($id, $data);
-
-        return (new UserResource($this->service->findOrFail($id)))->response();
     }
 
     public function destroy(int $id): JsonResponse
     {
-        $this->service->delete($id);
+        try {
+            $this->service->delete($id);
 
-        return response()->json(['message' => 'User deleted successfully']);
+            return $this->successResponse(null, 'User deleted successfully');
+        } catch (\Exception $e) {
+            return $this->errorResponse('Failed to delete user: '.$e->getMessage(), 500);
+        }
     }
 
     public function assignRole(Request $request, int $id): JsonResponse
     {
-        $request->validate(['role_id' => 'required|exists:roles,id']);
-        $this->service->assignRole($id, $request->role_id);
+        try {
+            $request->validate(['role_id' => 'required|exists:roles,id']);
+            $this->service->assignRole($id, $request->role_id);
 
-        return response()->json(['message' => 'Role assigned successfully']);
+            return $this->successResponse(null, 'Role assigned successfully');
+        } catch (\Exception $e) {
+            return $this->errorResponse('Failed to assign role: '.$e->getMessage(), 500);
+        }
     }
 
     public function removeRole(Request $request, int $id): JsonResponse
     {
-        $request->validate(['role_id' => 'required|exists:roles,id']);
-        $this->service->removeRole($id, $request->role_id);
+        try {
+            $request->validate(['role_id' => 'required|exists:roles,id']);
+            $this->service->removeRole($id, $request->role_id);
 
-        return response()->json(['message' => 'Role removed successfully']);
+            return $this->successResponse(null, 'Role removed successfully');
+        } catch (\Exception $e) {
+            return $this->errorResponse('Failed to remove role: '.$e->getMessage(), 500);
+        }
     }
 
     public function assignProject(Request $request, int $id): JsonResponse
     {
-        $request->validate(['project_id' => 'required|exists:projects,id']);
-        $this->service->assignProject($id, $request->project_id);
+        try {
+            $request->validate(['project_id' => 'required|exists:projects,id']);
+            $this->service->assignProject($id, $request->project_id);
 
-        return response()->json(['message' => 'Project assigned successfully']);
+            return $this->successResponse(null, 'Project assigned successfully');
+        } catch (\Exception $e) {
+            return $this->errorResponse('Failed to assign project: '.$e->getMessage(), 500);
+        }
     }
 
     public function removeProject(Request $request, int $id): JsonResponse
     {
-        $request->validate(['project_id' => 'required|exists:projects,id']);
-        $this->service->removeProject($id, $request->project_id);
+        try {
+            $request->validate(['project_id' => 'required|exists:projects,id']);
+            $this->service->removeProject($id, $request->project_id);
 
-        return response()->json(['message' => 'Project removed successfully']);
+            return $this->successResponse(null, 'Project removed successfully');
+        } catch (\Exception $e) {
+            return $this->errorResponse('Failed to remove project: '.$e->getMessage(), 500);
+        }
     }
 }

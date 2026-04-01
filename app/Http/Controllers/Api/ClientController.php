@@ -3,55 +3,82 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\ClientResource;
 use App\Models\Client;
+use App\Traits\ApiResponse;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ClientController extends Controller
 {
-    public function index()
+    use ApiResponse;
+
+    public function index(): JsonResponse
     {
-        return response()->json(Client::all());
+        try {
+            $clients = Client::all();
+
+            return $this->successResponse(ClientResource::collection($clients), 'Clients fetched successfully');
+        } catch (\Exception $e) {
+            return $this->errorResponse('Failed to fetch clients: '.$e->getMessage(), 500);
+        }
     }
 
-    public function store(Request $request)
+    public function store(Request $request): JsonResponse
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'company_name' => 'nullable|string|max:255',
-            'email' => 'nullable|email|max:255|unique:clients,email',
-            'phone' => 'nullable|string|max:20',
-            'address' => 'nullable|string',
-        ]);
+        try {
+            $validated = $request->validate([
+                'name' => 'required|string|max:255',
+                'company_name' => 'nullable|string|max:255',
+                'email' => 'nullable|email|max:255|unique:clients,email',
+                'phone' => 'nullable|string|max:20',
+                'address' => 'nullable|string',
+            ]);
 
-        $client = Client::create($validated);
+            $client = Client::create($validated);
 
-        return response()->json($client, 201);
+            return $this->successResponse(new ClientResource($client), 'Client created successfully', 201);
+        } catch (\Exception $e) {
+            return $this->errorResponse('Failed to create client: '.$e->getMessage(), 500);
+        }
     }
 
-    public function show(Client $client)
+    public function show(Client $client): JsonResponse
     {
-        return response()->json($client);
+        try {
+            return $this->successResponse(new ClientResource($client), 'Client fetched successfully');
+        } catch (\Exception $e) {
+            return $this->errorResponse('Failed to fetch client: '.$e->getMessage(), 500);
+        }
     }
 
-    public function update(Request $request, Client $client)
+    public function update(Request $request, Client $client): JsonResponse
     {
-        $validated = $request->validate([
-            'name' => 'sometimes|string|max:255',
-            'company_name' => 'nullable|string|max:255',
-            'email' => 'nullable|email|max:255|unique:clients,email,' . $client->id,
-            'phone' => 'nullable|string|max:20',
-            'address' => 'nullable|string',
-        ]);
+        try {
+            $validated = $request->validate([
+                'name' => 'sometimes|string|max:255',
+                'company_name' => 'nullable|string|max:255',
+                'email' => 'nullable|email|max:255|unique:clients,email,'.$client->id,
+                'phone' => 'nullable|string|max:20',
+                'address' => 'nullable|string',
+            ]);
 
-        $client->update($validated);
+            $client->update($validated);
 
-        return response()->json($client);
+            return $this->successResponse(new ClientResource($client), 'Client updated successfully');
+        } catch (\Exception $e) {
+            return $this->errorResponse('Failed to update client: '.$e->getMessage(), 500);
+        }
     }
 
-    public function destroy(Client $client)
+    public function destroy(Client $client): JsonResponse
     {
-        $client->delete();
+        try {
+            $client->delete();
 
-        return response()->json(null, 204);
+            return $this->successResponse(null, 'Client deleted successfully');
+        } catch (\Exception $e) {
+            return $this->errorResponse('Failed to delete client: '.$e->getMessage(), 500);
+        }
     }
 }

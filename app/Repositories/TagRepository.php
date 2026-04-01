@@ -45,20 +45,63 @@ class TagRepository implements BaseRepositoryInterface
 
     public function create(array $data): Tag
     {
-        return $this->model->create($data);
+        return DB::transaction(function () use ($data) {
+            $tag = $this->model->create($data);
+
+            ActivityLog::log(
+                'tag_created',
+                'Created tag: '.$tag->name,
+                $tag,
+                null,
+                $data,
+                Tag::class
+            );
+
+            return $tag;
+        });
     }
 
     public function update(int $id, array $data): bool
     {
-        $model = $this->findOrFail($id);
+        return DB::transaction(function () use ($id, $data) {
+            $model = $this->findOrFail($id);
+            $oldValues = $model->toArray();
 
-        return $model->update($data);
+            $updated = $model->update($data);
+
+            ActivityLog::log(
+                'tag_updated',
+                'Updated tag: '.$model->name,
+                $model,
+                $oldValues,
+                $data,
+                Tag::class
+            );
+
+            return $updated;
+        });
     }
 
     public function delete(int $id): bool
     {
-        $model = $this->findOrFail($id);
+        return DB::transaction(function () use ($id) {
+            $model = $this->findOrFail($id);
+            $tagName = $model->name;
 
-        return $model->delete();
+            $deleted = $model->delete();
+
+            if ($deleted) {
+                ActivityLog::log(
+                    'tag_deleted',
+                    'Deleted tag: '.$tagName,
+                    null,
+                    ['id' => $id, 'name' => $tagName],
+                    null,
+                    Tag::class
+                );
+            }
+
+            return $deleted;
+        });
     }
 }

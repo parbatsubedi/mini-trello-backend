@@ -3,65 +3,92 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\LabelResource;
 use App\Models\Label;
+use App\Traits\ApiResponse;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class LabelController extends Controller
 {
-    public function index(Request $request)
+    use ApiResponse;
+
+    public function index(Request $request): JsonResponse
     {
-        $query = Label::query();
+        try {
+            $query = Label::query();
 
-        $types = $request->input('type');
+            $types = $request->input('type');
 
-        if ($types) {
-            if (is_array($types)) {
-                $query->whereIn('type', $types);
-            } else {
-                if (in_array($types, ['project', 'task', 'both'])) {
-                    $query->where('type', $types);
+            if ($types) {
+                if (is_array($types)) {
+                    $query->whereIn('type', $types);
+                } else {
+                    if (in_array($types, ['project', 'task', 'both'])) {
+                        $query->where('type', $types);
+                    }
                 }
             }
+
+            $labels = $query->get();
+
+            return $this->successResponse(LabelResource::collection($labels), 'Labels fetched successfully');
+        } catch (\Exception $e) {
+            return $this->errorResponse('Failed to fetch labels: '.$e->getMessage(), 500);
         }
-
-        return response()->json($query->get());
     }
 
-    public function store(Request $request)
+    public function store(Request $request): JsonResponse
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'color' => 'nullable|string|max:255',
-            'type' => 'nullable|in:project,task,both',
-        ]);
+        try {
+            $validated = $request->validate([
+                'name' => 'required|string|max:255',
+                'color' => 'nullable|string|max:255',
+                'type' => 'nullable|in:project,task,both',
+            ]);
 
-        $label = Label::create($validated);
+            $label = Label::create($validated);
 
-        return response()->json($label, 201);
+            return $this->successResponse(new LabelResource($label), 'Label created successfully', 201);
+        } catch (\Exception $e) {
+            return $this->errorResponse('Failed to create label: '.$e->getMessage(), 500);
+        }
     }
 
-    public function show(Label $label)
+    public function show(Label $label): JsonResponse
     {
-        return response()->json($label);
+        try {
+            return $this->successResponse(new LabelResource($label), 'Label fetched successfully');
+        } catch (\Exception $e) {
+            return $this->errorResponse('Failed to fetch label: '.$e->getMessage(), 500);
+        }
     }
 
-    public function update(Request $request, Label $label)
+    public function update(Request $request, Label $label): JsonResponse
     {
-        $validated = $request->validate([
-            'name' => 'sometimes|string|max:255',
-            'color' => 'nullable|string|max:255',
-            'type' => 'nullable|in:project,task,both',
-        ]);
+        try {
+            $validated = $request->validate([
+                'name' => 'sometimes|string|max:255',
+                'color' => 'nullable|string|max:255',
+                'type' => 'nullable|in:project,task,both',
+            ]);
 
-        $label->update($validated);
+            $label->update($validated);
 
-        return response()->json($label);
+            return $this->successResponse(new LabelResource($label), 'Label updated successfully');
+        } catch (\Exception $e) {
+            return $this->errorResponse('Failed to update label: '.$e->getMessage(), 500);
+        }
     }
 
-    public function destroy(Label $label)
+    public function destroy(Label $label): JsonResponse
     {
-        $label->delete();
+        try {
+            $label->delete();
 
-        return response()->json(null, 204);
+            return $this->successResponse(null, 'Label deleted successfully');
+        } catch (\Exception $e) {
+            return $this->errorResponse('Failed to delete label: '.$e->getMessage(), 500);
+        }
     }
 }

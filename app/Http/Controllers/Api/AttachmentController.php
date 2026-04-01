@@ -6,52 +6,72 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreAttachmentRequest;
 use App\Http\Resources\AttachmentResource;
 use App\Services\AttachmentService;
+use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class AttachmentController extends Controller
 {
+    use ApiResponse;
+
     public function __construct(
         protected AttachmentService $service
     ) {}
 
-    public function index(Request $request): AnonymousResourceCollection
+    public function index(Request $request): JsonResponse
     {
-        $perPage = $request->input('per_page', 15);
-        $attachments = $this->service->paginate($perPage, ['*'], ['user']);
+        try {
+            $perPage = $request->input('per_page', 15);
+            $attachments = $this->service->paginate($perPage, ['*'], ['user']);
 
-        return AttachmentResource::collection($attachments);
+            return $this->paginatedResponse($attachments, 'Attachments fetched successfully');
+        } catch (\Exception $e) {
+            return $this->errorResponse('Failed to fetch attachments: '.$e->getMessage(), 500);
+        }
     }
 
     public function store(StoreAttachmentRequest $request): JsonResponse
     {
-        $data = $request->validated();
-        $attachment = $this->service->create($data, $request->file('file'));
+        try {
+            $data = $request->validated();
+            $attachment = $this->service->create($data, $request->file('file'));
 
-        return (new AttachmentResource($attachment))
-            ->response()
-            ->setStatusCode(201);
+            return $this->successResponse(new AttachmentResource($attachment), 'Attachment created successfully', 201);
+        } catch (\Exception $e) {
+            return $this->errorResponse('Failed to create attachment: '.$e->getMessage(), 500);
+        }
     }
 
     public function show(int $id): JsonResponse
     {
-        $attachment = $this->service->findOrFail($id, ['*'], ['user']);
+        try {
+            $attachment = $this->service->findOrFail($id, ['*'], ['user']);
 
-        return (new AttachmentResource($attachment))->response();
+            return $this->successResponse(new AttachmentResource($attachment), 'Attachment fetched successfully');
+        } catch (\Exception $e) {
+            return $this->errorResponse('Failed to fetch attachment: '.$e->getMessage(), 500);
+        }
     }
 
     public function destroy(int $id): JsonResponse
     {
-        $this->service->delete($id);
+        try {
+            $this->service->delete($id);
 
-        return response()->json(['message' => 'Attachment deleted successfully']);
+            return $this->successResponse(null, 'Attachment deleted successfully');
+        } catch (\Exception $e) {
+            return $this->errorResponse('Failed to delete attachment: '.$e->getMessage(), 500);
+        }
     }
 
-    public function getByTask(int $taskId): AnonymousResourceCollection
+    public function getByTask(int $taskId): JsonResponse
     {
-        $attachments = $this->service->getByTask($taskId);
+        try {
+            $attachments = $this->service->getByTask($taskId);
 
-        return AttachmentResource::collection($attachments);
+            return $this->successResponse(AttachmentResource::collection($attachments), 'Attachments fetched successfully');
+        } catch (\Exception $e) {
+            return $this->errorResponse('Failed to fetch attachments: '.$e->getMessage(), 500);
+        }
     }
 }

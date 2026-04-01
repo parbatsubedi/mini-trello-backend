@@ -45,8 +45,66 @@ class AttachmentRepository implements AttachmentRepositoryInterface
 
     public function create(array $data): Attachment
     {
-        return $this->model->create($data);
+        return DB::transaction(function () use ($data) {
+            $attachment = $this->model->create($data);
+
+            ActivityLog::log(
+                'attachment_created',
+                'Created attachment: '.$attachment->file_name,
+                $attachment,
+                null,
+                $data,
+                Attachment::class
+            );
+
+            return $attachment;
+        });
     }
+
+    public function update(int $id, array $data): bool
+    {
+        return DB::transaction(function () use ($id, $data) {
+            $model = $this->findOrFail($id);
+            $oldValues = $model->toArray();
+
+            $updated = $model->update($data);
+
+            ActivityLog::log(
+                'attachment_updated',
+                'Updated attachment: '.$model->file_name,
+                $model,
+                $oldValues,
+                $data,
+                Attachment::class
+            );
+
+            return $updated;
+        });
+    }
+
+    public function delete(int $id): bool
+    {
+        return DB::transaction(function () use ($id) {
+            $model = $this->findOrFail($id);
+            $fileName = $model->file_name;
+
+            $deleted = $model->delete();
+
+            if ($deleted) {
+                ActivityLog::log(
+                    'attachment_deleted',
+                    'Deleted attachment: '.$fileName,
+                    null,
+                    ['id' => $id, 'file_name' => $fileName],
+                    null,
+                    Attachment::class
+                );
+            }
+
+            return $deleted;
+        });
+    }
+}
 
     public function update(int $id, array $data): bool
     {

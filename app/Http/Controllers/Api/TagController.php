@@ -7,51 +7,72 @@ use App\Http\Requests\StoreTagRequest;
 use App\Http\Requests\UpdateTagRequest;
 use App\Http\Resources\TagResource;
 use App\Services\TagService;
+use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class TagController extends Controller
 {
+    use ApiResponse;
+
     public function __construct(
         protected TagService $service
     ) {}
 
-    public function index(Request $request): AnonymousResourceCollection
+    public function index(Request $request): JsonResponse
     {
-        $perPage = $request->input('per_page', 15);
-        $tags = $this->service->paginate($perPage, ['*'], ['tasks']);
+        try {
+            $perPage = $request->input('per_page', 15);
+            $tags = $this->service->paginate($perPage, ['*'], ['tasks']);
 
-        return TagResource::collection($tags);
+            return $this->paginatedResponse($tags, 'Tags fetched successfully');
+        } catch (\Exception $e) {
+            return $this->errorResponse('Failed to fetch tags: '.$e->getMessage(), 500);
+        }
     }
 
     public function store(StoreTagRequest $request): JsonResponse
     {
-        $tag = $this->service->create($request->validated());
+        try {
+            $tag = $this->service->create($request->validated());
 
-        return (new TagResource($tag))
-            ->response()
-            ->setStatusCode(201);
+            return $this->successResponse(new TagResource($tag), 'Tag created successfully', 201);
+        } catch (\Exception $e) {
+            return $this->errorResponse('Failed to create tag: '.$e->getMessage(), 500);
+        }
     }
 
     public function show(int $id): JsonResponse
     {
-        $tag = $this->service->findOrFail($id, ['*'], ['tasks']);
+        try {
+            $tag = $this->service->findOrFail($id, ['*'], ['tasks']);
 
-        return (new TagResource($tag))->response();
+            return $this->successResponse(new TagResource($tag), 'Tag fetched successfully');
+        } catch (\Exception $e) {
+            return $this->errorResponse('Failed to fetch tag: '.$e->getMessage(), 500);
+        }
     }
 
     public function update(UpdateTagRequest $request, int $id): JsonResponse
     {
-        $this->service->update($id, $request->validated());
+        try {
+            $this->service->update($id, $request->validated());
+            $tag = $this->service->findOrFail($id);
 
-        return (new TagResource($this->service->findOrFail($id)))->response();
+            return $this->successResponse(new TagResource($tag), 'Tag updated successfully');
+        } catch (\Exception $e) {
+            return $this->errorResponse('Failed to update tag: '.$e->getMessage(), 500);
+        }
     }
 
     public function destroy(int $id): JsonResponse
     {
-        $this->service->delete($id);
+        try {
+            $this->service->delete($id);
 
-        return response()->json(['message' => 'Tag deleted successfully']);
+            return $this->successResponse(null, 'Tag deleted successfully');
+        } catch (\Exception $e) {
+            return $this->errorResponse('Failed to delete tag: '.$e->getMessage(), 500);
+        }
     }
 }
