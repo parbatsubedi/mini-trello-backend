@@ -89,10 +89,18 @@ class TaskRepository implements TaskRepositoryInterface
             return DB::transaction(function () use ($data) {
                 $data['user_id'] = auth()->id();
                 $task = $this->model->create($data);
+                $project = $task->project;
 
                 if (isset($data['assigned_users'])) {
+                    foreach ($data['assigned_users'] as $userId) {
+                        if (! $project->members()->where('user_id', $userId)->exists()) {
+                            \Log::info("Adding user {$userId} as member to project {$project->id} because they were assigned to a task");
+                            $project->members()->attach($userId);
+                        }
+                    }
                     $task->assignedUsers()->sync($this->formatSyncData($data['assigned_users'], false));
                 }
+                
                 if (isset($data['tags'])) {
                     $task->tags()->sync($data['tags']);
                 }
@@ -100,6 +108,11 @@ class TaskRepository implements TaskRepositoryInterface
                     $task->labels()->sync($data['labels']);
                 }
                 if (isset($data['collaborators'])) {
+                    foreach ($data['collaborators'] as $userId) {
+                        if (! $project->members()->where('user_id', $userId)->exists()) {
+                            $project->members()->attach($userId);
+                        }
+                    }
                     $task->collaborators()->sync($this->formatSyncData($data['collaborators'], true));
                 }
 
@@ -134,20 +147,31 @@ class TaskRepository implements TaskRepositoryInterface
         return DB::transaction(function () use ($id, $data) {
             $model = $this->findOrFail($id);
             $oldValues = $model->toArray();
+            $project = $model->project;
 
             $updated = $model->update($data);
 
             if (isset($data['assigned_users'])) {
+                foreach ($data['assigned_users'] as $userId) {
+                    if (! $project->members()->where('user_id', $userId)->exists()) {
+                        $project->members()->attach($userId);
+                    }
+                }
                 $model->assignedUsers()->sync($this->formatSyncData($data['assigned_users'], false));
+            }
+            if (isset($data['collaborators'])) {
+                foreach ($data['collaborators'] as $userId) {
+                    if (! $project->members()->where('user_id', $userId)->exists()) {
+                        $project->members()->attach($userId);
+                    }
+                }
+                $model->collaborators()->sync($this->formatSyncData($data['collaborators'], true));
             }
             if (isset($data['tags'])) {
                 $model->tags()->sync($data['tags']);
             }
             if (isset($data['labels'])) {
                 $model->labels()->sync($data['labels']);
-            }
-            if (isset($data['collaborators'])) {
-                $model->collaborators()->sync($this->formatSyncData($data['collaborators'], true));
             }
 
             ActivityLog::log(
