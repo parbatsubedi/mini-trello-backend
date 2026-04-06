@@ -7,6 +7,7 @@ use App\Http\Resources\Admin\DashboardResource;
 use App\Models\Comment;
 use App\Models\Project;
 use App\Models\Task;
+use App\Models\User;
 use App\Traits\ApiResponse;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -20,26 +21,40 @@ class DashboardController extends Controller
     {
         try {
             $userId = Auth::id();
+            $user = User::find($userId);
+            $isAdmin = $user && $user->isAdmin();
 
-            $totalProjects = Project::whereHas('members', function ($query) {})->count();
+            $projectQuery = Project::query();
+            $taskQuery = Task::query();
 
-            $completedTasks = Task::whereHas('project.members', function ($query) {})->where('status', 'done')->count();
+            if (! $isAdmin) {
+                $projectQuery->where(function ($q) use ($userId) {
+                    $q->where('user_id', $userId)
+                        ->orWhereHas('members', fn ($m) => $m->where('user_id', $userId));
+                });
 
-            $inProgressTasks = Task::whereHas('project.members', function ($query) {})->whereIn('status', ['in_progress', 'review'])->count();
+                $taskQuery->whereHas('project', function ($q) use ($userId) {
+                    $q->where('user_id', $userId)
+                        ->orWhereHas('members', fn ($m) => $m->where('user_id', $userId));
+                });
+            }
 
-            $totalTasks = Task::whereHas('project.members', function ($query) {})->count();
+            $totalProjects = $projectQuery->count();
+            $completedTasks = (clone $taskQuery)->where('status', 'done')->count();
+            $inProgressTasks = (clone $taskQuery)->whereIn('status', ['in_progress', 'review'])->count();
+            $totalTasks = $taskQuery->count();
 
             $efficiency = $totalTasks > 0 ? round(($completedTasks / $totalTasks) * 100) : 0;
 
             $stats = [
-                ['label' => 'Total Projects', 'value' => $totalProjects, 'change' => $this->getProjectChange(), 'color' => 'bg-blue-500'],
+                ['label' => 'Total Projects', 'value' => $totalProjects, 'change' => $this->getProjectChange($isAdmin), 'color' => 'bg-blue-500'],
                 ['label' => 'Completed Tasks', 'value' => $completedTasks, 'change' => $this->getCompletedTaskChange(), 'color' => 'bg-green-500'],
                 ['label' => 'In Progress', 'value' => $inProgressTasks, 'change' => $this->getInProgressChange(), 'color' => 'bg-yellow-500'],
                 ['label' => 'Efficiency', 'value' => $efficiency.'%', 'change' => $this->getEfficiencyChange(), 'color' => 'bg-purple-500'],
             ];
 
-            $recentProjects = $this->getRecentProjects($userId);
-            $recentActivity = $this->getRecentActivity($userId);
+            $recentProjects = $this->getRecentProjects($userId, $isAdmin);
+            $recentActivity = $this->getRecentActivity($userId, $isAdmin);
 
             $dashboardResponse = new DashboardResource((object) [
                 'stats' => $stats,
@@ -53,10 +68,18 @@ class DashboardController extends Controller
         }
     }
 
-    private function getProjectChange(): string
+    private function getProjectChange(bool $isAdmin): string
     {
+        $query = Project::query();
+        if (! $isAdmin) {
+            $userId = Auth::id();
+            $query->where(function ($q) use ($userId) {
+                $q->where('user_id', $userId)
+                    ->orWhereHas('members', fn ($m) => $m->where('user_id', $userId));
+            });
+        }
         $currentMonth = now()->month;
-        $count = Project::whereMonth('created_at', $currentMonth)->count();
+        $count = $query->whereMonth('created_at', $currentMonth)->count();
 
         return $count > 0 ? "+{$count} this month" : 'No new projects';
     }
@@ -106,12 +129,18 @@ class DashboardController extends Controller
         return "{$sign}{$diff}% vs last month";
     }
 
-    private function getRecentProjects(int $userId): array
+    private function getRecentProjects(int $userId, bool $isAdmin = false): array
     {
-        $projects = Project::whereHas('members', function ($query) use ($userId) {
-            $query->where('user_id', $userId);
-        })
-            ->withCount('tasks')
+        $query = Project::query();
+
+        if (! $isAdmin) {
+            $query->where(function ($q) use ($userId) {
+                $q->where('user_id', $userId)
+                    ->orWhereHas('members', fn ($m) => $m->where('user_id', $userId));
+            });
+        }
+
+        $projects = $query->withCount('tasks')
             ->with('members')
             ->latest()
             ->limit(5)
@@ -134,12 +163,18 @@ class DashboardController extends Controller
         })->toArray();
     }
 
-    private function getRecentActivity(int $userId): array
+    private function getRecentActivity(int $userId, bool $isAdmin = false): array
     {
-        $taskActivities = Task::whereHas('project.members', function ($query) use ($userId) {
-            $query->where('user_id', $userId);
-        })
-            ->with('creator')
+        $taskQuery = Task::query();
+
+        if (! $isAdmin) {
+            $taskQuery->whereHas('project', function ($q) use ($userId) {
+                $q->where('user_id', $userId)
+                    ->orWhereHas('members', fn ($m) => $m->where('user_id', $userId));
+            });
+        }
+
+        $taskActivities = $taskQuery->with('creator')
             ->latest()
             ->limit(10)
             ->get()
@@ -162,10 +197,16 @@ class DashboardController extends Controller
                 ];
             });
 
-        $commentActivities = Comment::whereHas('task.project.members', function ($query) use ($userId) {
-            $query->where('user_id', $userId);
-        })
-            ->with('user')
+        $commentQuery = Comment::query();
+
+        if (! $isAdmin) {
+            $commentQuery->whereHas('task.project', function ($q) use ($userId) {
+                $q->where('user_id', $userId)
+                    ->orWhereHas('members', fn ($m) => $m->where('user_id', $userId));
+            });
+        }
+
+        $commentActivities = $commentQuery->with('user')
             ->latest()
             ->limit(5)
             ->get()

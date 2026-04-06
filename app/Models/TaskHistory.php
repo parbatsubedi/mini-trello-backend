@@ -35,12 +35,12 @@ class TaskHistory extends Model
     }
 
     public static function log(
-        int $taskId,
-        string $action,
-        ?string $description = null,
-        ?string $fieldChanged = null,
-        ?array $oldValue = null,
-        ?array $newValue = null
+        $taskId,
+        $action,
+        $description = null,
+        $fieldChanged = null,
+        $oldValue = null,
+        $newValue = null
     ): self {
         return static::create([
             'task_id' => $taskId,

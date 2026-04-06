@@ -37,6 +37,7 @@ class TaskService
     {
         try {
             $task = $this->repository->create($data);
+
             return $task;
         } catch (\Exception $e) {
             \Log::error("Failed to create task: {$e->getMessage()}", ['data' => $data]);
@@ -107,5 +108,10 @@ class TaskService
     public function search(string $query, array $columns = ['title', 'description']): Collection
     {
         return $this->repository->search($query, $columns);
+    }
+
+    public function getProjectMembers(int $projectId): Collection
+    {
+        return $this->repository->getProjectMembers($projectId);
     }
 }

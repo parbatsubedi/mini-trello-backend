@@ -27,4 +27,6 @@ interface TaskRepositoryInterface extends BaseRepositoryInterface
     public function filter(array $filters): Collection;
 
     public function search(string $query, array $columns = ['title', 'description']): Collection;
+
+    public function getProjectMembers(int $projectId): Collection;
 }

@@ -65,6 +65,7 @@ Route::middleware('auth.jwt')->group(function () {
         Route::delete('remove-collaborator', [TaskController::class, 'removeCollaborator']);
         Route::post('attach-tag', [TaskController::class, 'attachTag']);
         Route::delete('detach-tag', [TaskController::class, 'detachTag']);
+        Route::get('project-members', [TaskController::class, 'getProjectMembers']);
     });
 
     Route::get('tasks-by-project/{projectId}', [TaskController::class, 'getByProject']);

@@ -4,6 +4,7 @@ namespace App\Repositories;
 
 use App\Contracts\TaskRepositoryInterface;
 use App\Models\ActivityLog;
+use App\Models\Project;
 use App\Models\Task;
 use App\Models\TaskHistory;
 use App\Models\User;
@@ -84,7 +85,7 @@ class TaskRepository implements TaskRepositoryInterface
 
     public function create(array $data): Task
     {
-        try{
+        try {
             return DB::transaction(function () use ($data) {
                 $data['user_id'] = auth()->id();
                 $task = $this->model->create($data);
@@ -102,7 +103,7 @@ class TaskRepository implements TaskRepositoryInterface
                     $task->collaborators()->sync($this->formatSyncData($data['collaborators'], true));
                 }
 
-                    ActivityLog::log(
+                ActivityLog::log(
                     'task_created',
                     'Created task: '.$task->title,
                     $task,
@@ -118,12 +119,12 @@ class TaskRepository implements TaskRepositoryInterface
                     null,
                     null,
                     $data
-                );                
+                );
 
                 return $task;
             });
         } catch (\Exception $e) {
-            \Log::error('Failed to create task: ',[$e]);
+            \Log::error('Failed to create task: ', [$e]);
             throw new \Exception('Failed to create task: '.$e->getMessage());
         }
     }
@@ -221,6 +222,15 @@ class TaskRepository implements TaskRepositoryInterface
     {
         return DB::transaction(function () use ($taskId, $userIds) {
             $task = $this->findOrFail($taskId);
+            $project = $task->project;
+
+            foreach ($userIds as $userId) {
+                $isMember = $project->members()->where('user_id', $userId)->exists();
+                if (! $isMember) {
+                    $project->members()->attach($userId, ['role' => 'member']);
+                }
+            }
+
             $task->assignedUsers()->sync($this->formatSyncData($userIds, false));
 
             ActivityLog::log(
@@ -249,6 +259,15 @@ class TaskRepository implements TaskRepositoryInterface
     {
         return DB::transaction(function () use ($taskId, $userIds) {
             $task = $this->findOrFail($taskId);
+            $project = $task->project;
+
+            foreach ($userIds as $userId) {
+                $isMember = $project->members()->where('user_id', $userId)->exists();
+                if (! $isMember) {
+                    $project->members()->attach($userId, ['role' => 'member']);
+                }
+            }
+
             $task->collaborators()->sync($this->formatSyncData($userIds, true));
 
             ActivityLog::log(
@@ -494,5 +513,12 @@ class TaskRepository implements TaskRepositoryInterface
                 }
             })
             ->get();
+    }
+
+    public function getProjectMembers(int $projectId): Collection
+    {
+        $project = Project::findOrFail($projectId);
+
+        return $project->members()->get();
     }
 }

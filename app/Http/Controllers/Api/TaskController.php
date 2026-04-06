@@ -199,4 +199,17 @@ class TaskController extends Controller
             return $this->errorResponse('Failed to search tasks: '.$e->getMessage(), 500);
         }
     }
+
+    public function getProjectMembers(int $id): JsonResponse
+    {
+        try {
+            $task = $this->service->findOrFail($id);
+            $projectId = $task->project_id;
+            $members = $this->service->getProjectMembers($projectId);
+
+            return $this->successResponse($members, 'Project members fetched successfully');
+        } catch (\Exception $e) {
+            return $this->errorResponse('Failed to fetch project members: '.$e->getMessage(), 500);
+        }
+    }
 }
