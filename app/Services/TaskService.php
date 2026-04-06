@@ -35,7 +35,13 @@ class TaskService
 
     public function create(array $data): Task
     {
-        return $this->repository->create($data);
+        try {
+            $task = $this->repository->create($data);
+            return $task;
+        } catch (\Exception $e) {
+            \Log::error("Failed to create task: {$e->getMessage()}", ['data' => $data]);
+            throw $e;
+        }
     }
 
     public function update(int $id, array $data): bool

@@ -84,44 +84,48 @@ class TaskRepository implements TaskRepositoryInterface
 
     public function create(array $data): Task
     {
-        return DB::transaction(function () use ($data) {
-            $data['user_id'] = auth()->id();
-            $task = $this->model->create($data);
+        try{
+            return DB::transaction(function () use ($data) {
+                $data['user_id'] = auth()->id();
+                $task = $this->model->create($data);
 
-            if (isset($data['assigned_users'])) {
-                $task->assignedUsers()->sync($this->formatSyncData($data['assigned_users'], false));
-            }
-            if (isset($data['tags'])) {
-                $task->tags()->sync($data['tags']);
-            }
-            if (isset($data['labels'])) {
-                $task->labels()->sync($data['labels']);
-            }
-            if (isset($data['collaborators'])) {
-                $task->collaborators()->sync($this->formatSyncData($data['collaborators'], true));
-            }
+                if (isset($data['assigned_users'])) {
+                    $task->assignedUsers()->sync($this->formatSyncData($data['assigned_users'], false));
+                }
+                if (isset($data['tags'])) {
+                    $task->tags()->sync($data['tags']);
+                }
+                if (isset($data['labels'])) {
+                    $task->labels()->sync($data['labels']);
+                }
+                if (isset($data['collaborators'])) {
+                    $task->collaborators()->sync($this->formatSyncData($data['collaborators'], true));
+                }
 
-            \Log::info('Task created: '.$task->title, ['task_id' => $task->id, 'data' => $data]);
-            ActivityLog::log(
-                'task_created',
-                'Created task: '.$task->title,
-                $task,
-                null,
-                $data,
-                Task::class
-            );
+                    ActivityLog::log(
+                    'task_created',
+                    'Created task: '.$task->title,
+                    $task,
+                    null,
+                    $data,
+                    Task::class
+                );
 
-            TaskHistory::log(
-                $task->id,
-                'task_created',
-                'Task created',
-                null,
-                null,
-                $data
-            );
+                TaskHistory::log(
+                    $task->id,
+                    'task_created',
+                    'Task created',
+                    null,
+                    null,
+                    $data
+                );                
 
-            return $task;
-        });
+                return $task;
+            });
+        } catch (\Exception $e) {
+            \Log::error('Failed to create task: ',[$e]);
+            throw new \Exception('Failed to create task: '.$e->getMessage());
+        }
     }
 
     public function update(int $id, array $data): bool

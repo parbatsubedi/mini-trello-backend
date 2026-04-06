@@ -19,6 +19,11 @@ class TaskHistory extends Model
         'new_value',
     ];
 
+    protected $casts = [
+        'old_value' => 'array',
+        'new_value' => 'array',
+    ];
+
     public function task(): BelongsTo
     {
         return $this->belongsTo(Task::class);
