@@ -2,15 +2,15 @@
 
 namespace App\Services;
 
-use App\Contracts\CommentRepositoryInterface;
 use App\Models\Comment;
+use App\Repositories\CommentRepository;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class CommentService
 {
     public function __construct(
-        protected CommentRepositoryInterface $repository
+        protected CommentRepository $repository
     ) {}
 
     public function all(array $columns = ['*'], array $relations = []): Collection

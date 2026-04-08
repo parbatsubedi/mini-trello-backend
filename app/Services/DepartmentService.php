@@ -2,15 +2,15 @@
 
 namespace App\Services;
 
-use App\Contracts\DepartmentRepositoryInterface;
 use App\Models\Department;
+use App\Repositories\DepartmentRepository;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class DepartmentService
 {
     public function __construct(
-        protected DepartmentRepositoryInterface $repository
+        protected DepartmentRepository $repository
     ) {}
 
     public function all(array $columns = ['*'], array $relations = []): Collection

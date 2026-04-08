@@ -2,15 +2,15 @@
 
 namespace App\Services;
 
-use App\Contracts\RoleRepositoryInterface;
 use App\Models\Role;
+use App\Repositories\RoleRepository;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class RoleService
 {
     public function __construct(
-        protected RoleRepositoryInterface $repository
+        protected RoleRepository $repository
     ) {}
 
     public function all(array $columns = ['*'], array $relations = []): Collection

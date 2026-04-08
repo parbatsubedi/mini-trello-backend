@@ -2,15 +2,15 @@
 
 namespace App\Services;
 
-use App\Contracts\TagRepositoryInterface;
 use App\Models\Tag;
+use App\Repositories\TagRepository;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class TagService
 {
     public function __construct(
-        protected TagRepositoryInterface $repository
+        protected TagRepository $repository
     ) {}
 
     public function all(array $columns = ['*'], array $relations = []): Collection

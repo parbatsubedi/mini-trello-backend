@@ -3,10 +3,12 @@
 namespace App\Repositories;
 
 use App\Contracts\BaseRepositoryInterface;
+use App\Models\ActivityLog;
 use App\Models\Tag;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 
 class TagRepository implements BaseRepositoryInterface
 {

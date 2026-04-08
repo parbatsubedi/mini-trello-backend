@@ -3,6 +3,7 @@
 namespace App\Repositories;
 
 use App\Contracts\AttachmentRepositoryInterface;
+use App\Models\ActivityLog;
 use App\Models\Attachment;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -103,28 +104,5 @@ class AttachmentRepository implements AttachmentRepositoryInterface
 
             return $deleted;
         });
-    }
-}
-
-    public function update(int $id, array $data): bool
-    {
-        $model = $this->findOrFail($id);
-
-        return $model->update($data);
-    }
-
-    public function delete(int $id): bool
-    {
-        $model = $this->findOrFail($id);
-
-        return $model->delete();
-    }
-
-    public function getByTask(int $taskId): Collection
-    {
-        return $this->model->where('task_id', $taskId)
-            ->with(['user'])
-            ->orderBy('created_at', 'desc')
-            ->get();
     }
 }

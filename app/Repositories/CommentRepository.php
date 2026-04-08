@@ -8,6 +8,7 @@ use App\Models\Comment;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 
 class CommentRepository implements CommentRepositoryInterface
 {

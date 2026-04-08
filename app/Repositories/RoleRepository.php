@@ -3,10 +3,12 @@
 namespace App\Repositories;
 
 use App\Contracts\BaseRepositoryInterface;
+use App\Models\ActivityLog;
 use App\Models\Role;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 
 class RoleRepository implements BaseRepositoryInterface
 {
@@ -111,29 +113,5 @@ class RoleRepository implements BaseRepositoryInterface
 
             return $deleted;
         });
-    }
-}
-
-        return $role;
-    }
-
-    public function update(int $id, array $data): bool
-    {
-        $model = $this->findOrFail($id);
-
-        $updated = $model->update($data);
-
-        if (isset($data['users'])) {
-            $model->users()->sync($data['users']);
-        }
-
-        return $updated;
-    }
-
-    public function delete(int $id): bool
-    {
-        $model = $this->findOrFail($id);
-
-        return $model->delete();
     }
 }
