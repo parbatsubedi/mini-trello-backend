@@ -16,6 +16,8 @@ class LabelController extends Controller
     public function index(Request $request): JsonResponse
     {
         try {
+            $perPage = $request->input('per_page', 15);
+            $page = $request->input('page', 1);
             $query = Label::query();
 
             $types = $request->input('type');
@@ -30,9 +32,11 @@ class LabelController extends Controller
                 }
             }
 
-            $labels = $query->get();
+            $paginatedQuery = $query->paginate($perPage, ['*']);
+            $labels = LabelResource::collection($paginatedQuery);
 
-            return $this->successResponse(LabelResource::collection($labels), 'Labels fetched successfully');
+            return $this->paginatedResponse($labels, 'Labels fetched successfully');
+
         } catch (\Exception $e) {
             return $this->errorResponse('Failed to fetch labels: '.$e->getMessage(), 500);
         }
