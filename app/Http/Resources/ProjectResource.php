@@ -36,8 +36,8 @@ class ProjectResource extends JsonResource
             }, 0),
             'tasks' => TaskResource::collection($this->whenLoaded('tasks')),
             'total_tasks' => $this->tasks_count,
-            'created_at' => $this->created_at,
-            'updated_at' => $this->updated_at,
+            'created_at' => $this->created_at->format('Y-m-d H:i:s'),
+            'updated_at' => $this->updated_at->format('Y-m-d H:i:s'),
         ];
     }
 }

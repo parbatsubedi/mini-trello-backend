@@ -18,7 +18,7 @@ class TaskResource extends JsonResource
             'points' => $this->points,
             'start_date' => $this->start_date,
             'is_recurring' => $this->is_recurring,
-            'due_date' => $this->due_date,
+            'due_date' => $this->due_date->diffForHumans(),
             'project' => new ProjectResource($this->whenLoaded('project')),
             'creator' => new UserResource($this->whenLoaded('creator')),
             'assignee' => new UserResource($this->whenLoaded('assignee')),
@@ -34,8 +34,8 @@ class TaskResource extends JsonResource
             })),
             'comments_count' => $this->whenCounted('comments'),
             'attachments_count' => $this->whenCounted('attachments'),
-            'created_at' => $this->created_at,
-            'updated_at' => $this->updated_at,
+            'created_at' => $this->created_at->diffForHumans(),
+            'updated_at' => $this->updated_at->diffForHumans(),
         ];
     }
 }
